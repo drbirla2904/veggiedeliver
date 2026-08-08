@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Wallet — Taazgi{% endblock %}
+{% block content %}
+
+<div class="card" style="text-align:center; padding:24px;">
+  <div class="muted">Wallet balance</div>
+  <div style="font-family:'Fraunces',serif; font-size:34px; font-weight:600; color:var(--leaf); margin:6px 0;">₹{{ wallet.balance }}</div>
+  <div class="muted">Earned only through referrals — use it at checkout.</div>
+</div>
+
+<div class="card">
+  <div class="muted" style="margin-bottom:6px;">Your referral link</div>
+  <div style="word-break:break-all; font-weight:700; margin-bottom:10px;">
+    {{ request.scheme }}://{{ request.get_host }}{% url 'login' %}?ref={{ user.referral_code }}
+  </div>
+  <div class="muted">Share it — when someone you referred completes a delivered order, you get a bonus credited automatically.</div>
+</div>
+
+<h3 class="section-title">Transaction history</h3>
+{% if transactions %}
+<table>
+  <tr><th>Date</th><th>Type</th><th style="text-align:right;">Amount</th></tr>
+  {% for t in transactions %}
+  <tr>
+    <td>{{ t.created_at|date:"d M" }}</td>
+    <td>{{ t.get_reason_display }}</td>
+    <td style="text-align:right; color:{% if t.type == 'credit' %}var(--leaf){% else %}var(--clay){% endif %};">
+      {% if t.type == 'credit' %}+{% else %}−{% endif %}₹{{ t.amount }}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<div class="empty">No wallet activity yet.</div>
+{% endif %}
+{% endblock %}

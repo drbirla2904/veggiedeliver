@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Log in — Taazgi{% endblock %}
+{% block appbar_actions %}{% endblock %}
+{% block content %}
+
+<h1 style="font-size:24px; margin-bottom:6px;">
+  {% if step == "otp" %}Enter the OTP{% else %}Fresh veggies, one login away{% endif %}
+</h1>
+<p class="muted" style="margin-bottom:20px;">
+  {% if step == "otp" %}
+    We sent a 6-digit code to <b>+91 {{ mobile }}</b>
+  {% else %}
+    Log in or sign up with your mobile number — no password needed.
+  {% endif %}
+</p>
+
+{% if step == "otp" %}
+<form method="post">
+  {% csrf_token %}
+  <label for="code">OTP</label>
+  <input type="text" name="code" id="code" maxlength="6" inputmode="numeric" placeholder="6-digit code" autofocus required>
+
+  <label for="first_name">Your name <span class="muted">(first time only)</span></label>
+  <input type="text" name="first_name" id="first_name" placeholder="e.g. Asha">
+
+  <button class="btn full" type="submit">Verify & continue</button>
+</form>
+<p class="muted" style="margin-top:14px;">
+  <a href="{% url 'login' %}">← Use a different number</a>
+  &nbsp;·&nbsp;
+  <form method="post" action="{% url 'login' %}" style="display:inline;">
+    {% csrf_token %}
+    <input type="hidden" name="mobile" value="{{ mobile }}">
+    <button type="submit" style="background:none; border:none; padding:0; color:var(--leaf); font-weight:700; cursor:pointer;">Resend OTP</button>
+  </form>
+</p>
+{% else %}
+<form method="post">
+  {% csrf_token %}
+  <label for="mobile">Mobile number</label>
+  <input type="tel" name="mobile" id="mobile" maxlength="10" inputmode="numeric" placeholder="10-digit mobile number" autofocus required>
+  <button class="btn full" type="submit">Send OTP</button>
+</form>
+{% endif %}
+
+{% endblock %}

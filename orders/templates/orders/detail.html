@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Order #{{ order.id }} — Taazgi{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>#track-map{ height:100%; width:100%; }</style>
+{% endblock %}
+
+{% block content %}
+<div class="row" style="margin-bottom:12px;">
+  <h2 class="section-title" style="margin:0;">Order #{{ order.id }}</h2>
+  <span class="pill {{ order.status }}">{{ order.get_status_display }}</span>
+</div>
+
+{% if order.status == "out_for_delivery" or order.status == "confirmed" %}
+<div class="map-box"><div id="track-map"></div></div>
+<p class="muted" id="track-hint" style="margin-top:-6px;">Waiting for your delivery partner's location…</p>
+{% endif %}
+
+<div class="card">
+  <div class="muted" style="margin-bottom:8px;">Delivering to</div>
+  <b>{{ order.address.line1 }}</b><br>
+  <span class="muted">{{ order.address.landmark }}</span>
+</div>
+
+<div class="card">
+  {% for item in order.items.all %}
+  <div class="row" style="margin-bottom:8px;">
+    <span>{{ item.quantity }} × {{ item.variant.label }}</span>
+    <span>₹{{ item.line_total }}</span>
+  </div>
+  {% endfor %}
+  <div class="row" style="border-top:1px solid var(--border); padding-top:8px; font-weight:700;">
+    <span>Total</span><span>₹{{ order.grand_total }}</span>
+  </div>
+  {% if order.wallet_amount_used > 0 %}
+  <div class="row muted"><span>Wallet used</span><span>−₹{{ order.wallet_amount_used }}</span></div>
+  {% endif %}
+  <div class="row muted"><span>Delivery speed</span><span>{{ order.get_delivery_speed_display }}</span></div>
+  {% if order.delivery_bonus > 0 %}
+  <div class="row muted"><span>Delivery bonus</span><span>₹{{ order.delivery_bonus }}</span></div>
+  {% endif %}
+</div>
+
+{% if order.status == "out_for_delivery" or order.status == "confirmed" %}
+<script>
+  const map = L.map('track-map').setView([{{ order.address.latitude }}, {{ order.address.longitude }}], 14);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OpenStreetMap contributors &copy; CARTO', subdomains: 'abcd', maxZoom: 20 }).addTo(map);
+  L.marker([{{ order.address.latitude }}, {{ order.address.longitude }}]).addTo(map).bindPopup('Delivery address');
+
+  let riderMarker = null;
+
+  function poll() {
+    fetch("{% url 'order_tracking_data' order.id %}").then(r => r.json()).then(data => {
+      if (data.has_location) {
+        const pos = [data.latitude, data.longitude];
+        if (riderMarker) { riderMarker.setLatLng(pos); } else {
+          riderMarker = L.marker(pos, {title: "Delivery partner"}).addTo(map);
+        }
+        document.getElementById('track-hint').textContent = 'Delivery partner location updated just now.';
+      }
+    });
+  }
+  poll();
+  setInterval(poll, 8000);
+</script>
+{% endif %}
+{% endblock %}

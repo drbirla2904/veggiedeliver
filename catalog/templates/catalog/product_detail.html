@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }} — Taazgi{% endblock %}
+{% block content %}
+
+<div class="img" style="height:140px; border-radius:14px; background:#EEF3E5; display:flex; align-items:center; justify-content:center; font-size:60px; margin-bottom:14px; {% if product.image %}background-image:url('{{ product.image.url }}'); background-size:cover; background-position:center;{% endif %}">
+  {% if not product.image %}{{ product.category.icon_emoji|default:"🥕" }}{% endif %}
+</div>
+
+<h1 style="font-size:20px;">{{ product.name }}</h1>
+<p class="muted" style="margin:6px 0 16px;">{{ product.description|default:"Farm-fresh, hand-picked daily." }}</p>
+
+<h3 class="section-title">Choose pack size</h3>
+{% for variant in variants %}
+<div class="card row">
+  <div>
+    <b>{{ variant.label }}</b><br>
+    <span class="muted">₹{{ variant.price }} {% if variant.mrp > variant.price %}<s>₹{{ variant.mrp }}</s>{% endif %}</span>
+  </div>
+  <form method="post" action="{% url 'add_to_cart' variant.id %}" class="ajax-add">
+    {% csrf_token %}
+    <input type="hidden" name="quantity" value="1">
+    <input type="hidden" name="next" value="{{ request.path }}">
+    <button class="btn" type="submit">Add</button>
+  </form>
+</div>
+{% endfor %}
+
+{% endblock %}

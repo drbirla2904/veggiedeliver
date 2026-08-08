@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Taazgi — Fresh from the Farm{% endblock %}
+{% block content %}
+
+<h1 style="font-size:22px; margin-bottom:4px;">Farm-cut vegetables, on your table today.</h1>
+<p class="muted" style="margin-bottom:18px;">Pick your area's freshest picks below.</p>
+
+<div class="cat-row" style="margin-bottom:18px;">
+  <a href="{% url 'home' %}" class="cat-chip">
+    <div class="cat-circle {% if not selected_id %}active{% endif %}">🧺</div>
+    All
+  </a>
+  {% for cat in categories %}
+  <a href="?category={{ cat.id }}" class="cat-chip">
+    <div class="cat-circle {% if selected_id == cat.id %}active{% endif %}">{{ cat.icon_emoji|default:"🥕" }}</div>
+    {{ cat.name }}
+  </a>
+  {% endfor %}
+</div>
+
+{% if product_cards %}
+<div class="grid">
+  {% for product, variant in product_cards %}
+  <div class="pcard">
+    <a href="{% url 'product_detail' product.id %}">
+      <div class="img" {% if product.image %}style="background-image:url('{{ product.image.url }}'); background-size:cover; background-position:center;"{% endif %}>
+        {% if not product.image %}{{ product.category.icon_emoji|default:"🥕" }}{% endif %}
+      </div>
+      <div class="name">{{ product.name }}</div>
+      <div class="sub">{{ variant.label }}</div>
+    </a>
+    <div class="foot">
+      <div class="price">₹{{ variant.price }}</div>
+      <form method="post" action="{% url 'add_to_cart' variant.id %}" class="ajax-add">
+        {% csrf_token %}
+        <input type="hidden" name="quantity" value="1">
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <button class="btn" style="padding:6px 12px; font-size:16px;" type="submit">+</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty">No products here yet. Check back soon 🌱</div>
+{% endif %}
+
+{% endblock %}
+
+{% block navbar %}
+<nav class="navbar">
+  <a href="{% url 'home' %}" class="nav-item active">🏠 Home</a>
+  <a href="{% url 'order_history' %}" class="nav-item">📦 Orders</a>
+  <a href="{% url 'wallet_page' %}" class="nav-item">👛 Wallet</a>
+  <a href="{% url 'profile' %}" class="nav-item">👤 Profile</a>
+</nav>
+{% endblock %}

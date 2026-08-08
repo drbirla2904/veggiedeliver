@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Area Dashboard — {{ area.name }}{% endblock %}
+{% block appbar_actions %}<a href="{% url 'logout' %}">Logout</a>{% endblock %}
+{% block content %}
+<h2 class="section-title">{{ area.name }} — active orders</h2>
+<a href="{% url 'area_live_map' %}" class="btn secondary full" style="margin-bottom:16px;">🗺️ View live rider map</a>
+
+{% if orders %}
+{% for order in orders %}
+<div class="card">
+  <div class="row">
+    <b>Order #{{ order.id }}</b>
+    <span class="pill {{ order.status }}">{{ order.get_status_display }}</span>
+  </div>
+  <div class="muted" style="margin:6px 0;">{{ order.customer.get_full_name|default:order.customer.mobile }} · ₹{{ order.grand_total }}</div>
+  <div class="muted" style="margin-bottom:10px;">{{ order.address.line1 }}</div>
+
+  {% if not order.delivery_member %}
+  <div style="display:flex; flex-direction:column; gap:8px;">
+    <form method="post" action="{% url 'auto_assign_delivery_member' order.id %}">
+      {% csrf_token %}
+      <button class="btn full" type="submit">📍 Auto-assign nearest available rider</button>
+    </form>
+    <form method="post" action="{% url 'assign_delivery_member' order.id %}" style="display:flex; gap:8px;">
+      {% csrf_token %}
+      <select name="delivery_member_id" required>
+        <option value="">…or pick manually</option>
+        {% for member in delivery_members %}
+        <option value="{{ member.id }}">{{ member.get_full_name|default:member.mobile }}{% if member.is_on_duty %} · on duty{% endif %}</option>
+        {% endfor %}
+      </select>
+      <button class="btn secondary" type="submit">Assign</button>
+    </form>
+  </div>
+  {% else %}
+  <div class="muted">Assigned to <b>{{ order.delivery_member.get_full_name|default:order.delivery_member.mobile }}</b></div>
+  {% endif %}
+</div>
+{% endfor %}
+{% else %}
+<div class="empty">No active orders in this area right now.</div>
+{% endif %}
+
+<a href="{% url 'create_delivery_member' %}" class="btn secondary full" style="margin-top:16px;">+ Add delivery member</a>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Live Map — {{ area.name }}{% endblock %}
+{% block appbar_actions %}<a href="{% url 'area_dashboard' %}">← Back</a>{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  #live-map{ height:100%; width:100%; }
+  .legend{ display:flex; gap:16px; font-size:12px; margin-bottom:10px; }
+  .legend span{ display:inline-flex; align-items:center; gap:5px; }
+  .dot{ width:10px; height:10px; border-radius:50%; display:inline-block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2 class="section-title">{{ area.name }} — live coverage</h2>
+<div class="legend">
+  <span><span class="dot" style="background:var(--leaf);"></span> On-duty rider</span>
+  <span><span class="dot" style="background:var(--muted);"></span> Off-duty rider</span>
+  <span><span class="dot" style="background:var(--clay);"></span> Active order</span>
+</div>
+<div class="map-box" style="height:400px;"><div id="live-map"></div></div>
+<p class="muted" id="map-hint">Refreshing every 10 seconds…</p>
+
+<script>
+  const map = L.map('live-map').setView([{{ area.center_lat }}, {{ area.center_lng }}], 13);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OpenStreetMap contributors &copy; CARTO', subdomains: 'abcd', maxZoom: 20 }).addTo(map);
+
+  let riderMarkers = {};
+  let orderMarkers = {};
+
+  function colorIcon(color) {
+    return L.divIcon({
+      className: '',
+      html: `<div style="width:14px;height:14px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 0 3px rgba(0,0,0,.4);"></div>`,
+      iconSize: [14, 14],
+    });
+  }
+
+  function poll() {
+    fetch("{% url 'area_live_map_data' %}").then(r => r.json()).then(data => {
+      data.riders.forEach(rider => {
+        const pos = [rider.latitude, rider.longitude];
+        const color = rider.on_duty ? '#4B6B3A' : '#8A9080';
+        if (riderMarkers[rider.id]) {
+          riderMarkers[rider.id].setLatLng(pos).setIcon(colorIcon(color));
+        } else {
+          riderMarkers[rider.id] = L.marker(pos, {icon: colorIcon(color)}).addTo(map).bindPopup(rider.name);
+        }
+      });
+
+      data.orders.forEach(order => {
+        const pos = [order.latitude, order.longitude];
+        if (orderMarkers[order.id]) {
+          orderMarkers[order.id].setLatLng(pos);
+        } else {
+          orderMarkers[order.id] = L.marker(pos, {icon: colorIcon('#C9552F')}).addTo(map).bindPopup(`Order #${order.id} (${order.status})`);
+        }
+      });
+
+      document.getElementById('map-hint').textContent =
+        `${data.riders.length} rider(s), ${data.orders.length} active order(s) — updated ${new Date().toLocaleTimeString()}`;
+    });
+  }
+  poll();
+  setInterval(poll, 10000);
+</script>
+{% endblock %}

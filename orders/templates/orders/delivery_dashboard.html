@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}My Deliveries{% endblock %}
+{% block appbar_actions %}<a href="{% url 'logout' %}">Logout</a>{% endblock %}
+{% block content %}
+
+<div class="card row" style="margin-bottom:16px;">
+  <div>
+    <b>Duty status</b><br>
+    <span class="muted">{% if user.is_on_duty %}You're visible for nearby order assignment.{% else %}Go on duty to receive nearby orders.{% endif %}</span>
+  </div>
+  <form method="post" action="{% url 'toggle_duty' %}">
+    {% csrf_token %}
+    <button class="btn {% if user.is_on_duty %}clay{% endif %}" type="submit">
+      {% if user.is_on_duty %}Go off duty{% else %}Go on duty{% endif %}
+    </button>
+  </form>
+</div>
+
+<h2 class="section-title">Your assigned orders</h2>
+
+{% if orders %}
+{% for order in orders %}
+<div class="card">
+  <div class="row">
+    <b>Order #{{ order.id }}</b>
+    <span class="pill {{ order.status }}">{{ order.get_status_display }}</span>
+  </div>
+  <div class="muted" style="margin:6px 0;">{{ order.address.line1 }}</div>
+  <div class="muted" style="margin-bottom:10px;">₹{{ order.grand_total }} · {{ order.get_payment_method_display }}</div>
+
+  <div style="display:flex; gap:8px;">
+    {% if order.status == "confirmed" %}
+    <form method="post" action="{% url 'update_order_status' order.id %}">
+      {% csrf_token %}<input type="hidden" name="status" value="out_for_delivery">
+      <button class="btn" type="submit">Start delivery</button>
+    </form>
+    {% elif order.status == "out_for_delivery" %}
+    <form method="post" action="{% url 'update_order_status' order.id %}">
+      {% csrf_token %}<input type="hidden" name="status" value="delivered">
+      <button class="btn clay" type="submit">Mark delivered</button>
+    </form>
+    <button class="btn secondary" onclick="shareLocation({{ order.id }})" type="button">Share live location</button>
+    {% endif %}
+  </div>
+</div>
+{% endfor %}
+{% else %}
+<div class="empty">No orders assigned right now.</div>
+{% endif %}
+
+<script>
+  function getCsrf() {
+    return document.cookie.split('; ').find(r => r.startsWith('csrftoken='))?.split('=')[1];
+  }
+
+  function postLocation(url, extraBody) {
+    return function(pos) {
+      fetch(url, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': getCsrf()},
+        body: `latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}${extraBody || ''}`
+      });
+    };
+  }
+
+  {% if user.is_on_duty %}
+  // While on duty, keep reporting a general location every ~20s — this is
+  // what powers the area-admin's live map and nearest-rider auto-assign,
+  // independent of any single order.
+  if (navigator.geolocation) {
+    navigator.geolocation.watchPosition(
+      postLocation("{% url 'update_my_location' %}"),
+      function(err) { console.error(err); },
+      {enableHighAccuracy: true, maximumAge: 15000}
+    );
+  }
+  {% endif %}
+
+  function shareLocation(orderId) {
+    if (!navigator.geolocation) { alert('Location not supported on this device.'); return; }
+    navigator.geolocation.watchPosition(
+      postLocation(`/delivery/orders/${orderId}/ping/`),
+      function(err) { console.error(err); },
+      {enableHighAccuracy: true}
+    );
+    alert('Live location sharing started for this order.');
+  }
+</script>
+{% endblock %}

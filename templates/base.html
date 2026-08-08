@@ -1,0 +1,58 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Taazgi{% endblock %}</title>
+<link rel="stylesheet" href="{% static 'css/app.css' %}">
+{% block extra_head %}{% endblock %}
+</head>
+<body>
+<div class="device">
+
+  <div class="appbar">
+    <a class="brand" href="{% url 'home' %}">
+      <span class="mark">T</span> Taazgi
+    </a>
+    <div class="actions">
+      {% block appbar_actions %}
+      {% if user.is_authenticated %}
+        {% if user.is_customer %}
+          <a href="{% url 'cart' %}">🛒{% if cart_count %}<span class="cart-badge">{{ cart_count }}</span>{% endif %}</a>
+        {% endif %}
+        <a href="{% url 'logout' %}">Logout</a>
+      {% else %}
+        <a href="{% url 'login' %}">Login</a>
+      {% endif %}
+      {% endblock %}
+    </div>
+  </div>
+
+  <div class="wrap">
+    {% if messages %}
+      {% for message in messages %}
+        <div class="flash {{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+    {% block content %}{% endblock %}
+  </div>
+
+  {% block navbar %}{% endblock %}
+
+  {% block fixed_checkout_bar %}
+  {% if cart_count %}
+  <div class="fixed-checkout-bar">
+    <a href="{% url 'checkout' %}" class="btn full clay">Go to checkout ({{ cart_count }} item{% if cart_count != 1 %}s{% endif %})</a>
+  </div>
+  {% endif %}
+  {% endblock %}
+
+</div>
+</div>
+
+<script src="{% static 'js/csrf.js' %}"></script>
+<script src="{% static 'js/toast.js' %}"></script>
+<script src="{% static 'js/ajax_add_to_cart.js' %}"></script>
+</body>
+</html>

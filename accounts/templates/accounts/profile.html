@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Profile — Taazgi{% endblock %}
+{% block content %}
+<h2 class="section-title">Your profile</h2>
+<div class="card">
+  <div class="row"><span class="muted">Name</span><b>{{ user.get_full_name|default:"—" }}</b></div>
+  <div class="row" style="margin-top:8px;"><span class="muted">Mobile</span><b>+91 {{ user.mobile }}</b></div>
+  <div class="row" style="margin-top:8px;"><span class="muted">Referral code</span><b>{{ user.referral_code }}</b></div>
+</div>
+<a class="btn secondary full" href="{% url 'order_history' %}">Your orders</a>
+<div style="height:10px;"></div>
+<a class="btn secondary full" href="{% url 'wallet_page' %}">Wallet & referrals</a>
+{% endblock %}

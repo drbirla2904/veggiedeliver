@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block title %}Checkout — Taazgi{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>#pin-map{ height:100%; width:100%; }</style>
+{% endblock %}
+
+{% block fixed_checkout_bar %}{% endblock %}
+
+{% block content %}
+<h2 class="section-title">Checkout</h2>
+
+{% if addresses %}
+<h3 style="font-size:13px; margin-bottom:8px;">Use a saved address</h3>
+{% for addr in addresses %}
+<label class="card" style="display:flex; gap:10px; align-items:flex-start; cursor:pointer;">
+  <input type="radio" name="saved_address_choice" value="{{ addr.id }}" style="width:auto; margin:4px 0 0;" onclick="selectSaved({{ addr.id }})">
+  <span><b>{{ addr.label }}</b><br><span class="muted">{{ addr.line1 }}{% if addr.landmark %}, {{ addr.landmark }}{% endif %}</span></span>
+</label>
+{% endfor %}
+<p class="muted" style="margin:10px 0;">— or use your current location —</p>
+{% endif %}
+
+<button type="button" class="btn full" id="use-location-btn" style="margin-bottom:12px;" onclick="useMyLocation()">
+  📍 Use my current location
+</button>
+
+<div class="map-box"><div id="pin-map"></div></div>
+<p class="muted" id="pin-hint" style="margin-top:-6px; margin-bottom:14px;">
+  Tap "Use my current location" or tap the map directly to set your delivery pin.
+</p>
+
+<form method="post" id="checkout-form">
+  {% csrf_token %}
+  <input type="hidden" name="address_id" id="address_id_field">
+  <input type="hidden" name="latitude" id="lat_field">
+  <input type="hidden" name="longitude" id="lng_field">
+
+  <div id="new-address-fields">
+    <label>Label</label>
+    <select name="label"><option>Home</option><option>Work</option><option>Other</option></select>
+    <label>Address line <span class="muted">(auto-filled — edit if needed)</span></label>
+    <input type="text" name="line1" id="line1_field" placeholder="House / street / area">
+    <div id="no-pin-warning" class="flash error" style="display:none;">⚠️ Please set your delivery pin above before placing the order.</div>
+    <label>Landmark <span class="muted">(optional)</span></label>
+    <input type="text" name="landmark" id="landmark_field">
+    <label>Pincode</label>
+    <input type="text" name="pincode" id="pincode_field" maxlength="6">
+  </div>
+
+  {% if gift_message %}
+  <div class="flash success" style="margin-bottom:14px;">
+    🎁 Your order is above ₹{{ gift_trigger_amount }} — you will receive a gift at delivery!
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <div style="margin-bottom:10px; font-weight:700;">Delivery time</div>
+    <label style="display:block; margin-bottom:8px;">
+      <input type="radio" name="delivery_speed" value="instant" checked>
+      Instant delivery (no bonus)
+    </label>
+    <label style="display:block; margin-bottom:8px;">
+      <input type="radio" name="delivery_speed" value="3_4_hours">
+      3-4 hour delivery (₹5 wallet bonus after delivery)
+    </label>
+    <label style="display:block; margin-bottom:8px;">
+      <input type="radio" name="delivery_speed" value="next_day">
+      Next day delivery (₹10 wallet bonus after delivery)
+    </label>
+  </div>
+
+  <div class="card">
+    <div class="row"><span>Items subtotal</span><span>₹{{ subtotal }}</span></div>
+    {% if wallet_balance > 0 %}
+    <div class="row" style="margin-top:10px;">
+      <label style="display:flex; align-items:center; gap:8px; margin:0;">
+        <input type="checkbox" name="use_wallet" style="width:auto; margin:0;">
+        Use wallet balance (₹{{ wallet_balance }} available, up to ₹{{ max_wallet_usable }} on this order)
+      </label>
+    </div>
+    {% endif %}
+  </div>
+
+  <button class="btn full clay" type="submit">Place order — Cash on Delivery</button>
+</form>
+
+<script>
+  const map = L.map('pin-map').setView([23.2599, 77.4126], 12); // Bhopal default center
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap contributors &copy; CARTO', subdomains: 'abcd', maxZoom: 20
+  }).addTo(map);
+
+  let marker = null;
+
+  function dropPin(lat, lng) {
+    document.getElementById('address_id_field').value = '';
+    document.querySelectorAll('input[name=saved_address_choice]').forEach(r => r.checked = false);
+    document.getElementById('new-address-fields').style.display = 'block';
+
+    const latlng = {lat, lng};
+    if (marker) { marker.setLatLng(latlng); } else { marker = L.marker(latlng).addTo(map); }
+    document.getElementById('lat_field').value = lat;
+    document.getElementById('lng_field').value = lng;
+    document.getElementById('no-pin-warning').style.display = 'none';
+  }
+
+  // Reverse-geocode via OpenStreetMap's free Nominatim endpoint — fine for
+  // low-volume/dev use. For production traffic, swap this fetch for a
+  // keyed geocoder (Google Geocoding API, OpenCage, etc.) to respect
+  // Nominatim's usage policy and get more reliable results.
+  function reverseGeocode(lat, lng) {
+    document.getElementById('pin-hint').textContent = 'Looking up your address…';
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`)
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.address) {
+          const a = data.address;
+          const line = [a.house_number, a.road || a.suburb, a.neighbourhood].filter(Boolean).join(', ');
+          document.getElementById('line1_field').value = line || data.display_name || '';
+          document.getElementById('pincode_field').value = a.postcode || '';
+          document.getElementById('pin-hint').textContent = 'Location detected — check the address below and adjust if needed.';
+        } else {
+          document.getElementById('pin-hint').textContent = 'Pin set. Please fill in the address manually.';
+        }
+      })
+      .catch(() => {
+        document.getElementById('pin-hint').textContent = 'Pin set. Please fill in the address manually.';
+      });
+  }
+
+  function useMyLocation() {
+    if (!navigator.geolocation) {
+      document.getElementById('pin-hint').textContent = "Location isn't supported on this device — please tap the map instead.";
+      return;
+    }
+    document.getElementById('pin-hint').textContent = 'Getting your location…';
+    navigator.geolocation.getCurrentPosition(
+      function(pos) {
+        const latitude = pos.coords.latitude, longitude = pos.coords.longitude;
+        map.setView([latitude, longitude], 16);
+        dropPin(latitude, longitude);
+        reverseGeocode(latitude, longitude);
+      },
+      function(err) {
+        document.getElementById('pin-hint').textContent = "Couldn't get your location — please tap the map to set your pin.";
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
+
+  map.on('click', function(e) {
+    dropPin(e.latlng.lat, e.latlng.lng);
+    reverseGeocode(e.latlng.lat, e.latlng.lng);
+  });
+
+  function selectSaved(id) {
+    document.getElementById('address_id_field').value = id;
+    document.getElementById('lat_field').value = '';
+    document.getElementById('lng_field').value = '';
+    document.getElementById('new-address-fields').style.display = 'none';
+    document.getElementById('no-pin-warning').style.display = 'none';
+  }
+
+  // Try to auto-detect on page load so most customers never need to type
+  document.getElementById('checkout-form').addEventListener('submit', function(e) {
+    const hasSavedAddress = document.getElementById('address_id_field').value;
+    const hasNewPin = document.getElementById('lat_field').value && document.getElementById('lng_field').value;
+    const hasLine1 = document.getElementById('line1_field').value.trim().length > 0;
+
+    if (!hasSavedAddress && !(hasNewPin && hasLine1)) {
+      e.preventDefault();
+      const warning = document.getElementById('no-pin-warning');
+      warning.style.display = 'block';
+      warning.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (!hasNewPin) {
+        document.getElementById('pin-hint').textContent = 'Tap "Use my current location" or tap the map to set your delivery pin — required before placing the order.';
+      }
+    }
+  });
+
+  // an address at all — falls back silently to manual tap if permission
+  // is denied or unavailable.
+  window.addEventListener('load', function() {
+    const addressCount = {{ addresses|length|default:0 }};
+    if (navigator.geolocation && addressCount === 0) {
+      useMyLocation();
+    } else if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(function(pos) {
+        map.setView([pos.coords.latitude, pos.coords.longitude], 14);
+      }, function() {}, { timeout: 5000 });
+    }
+  });
+</script>
+{% endblock %}
