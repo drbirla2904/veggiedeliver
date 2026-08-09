@@ -38,7 +38,14 @@
     {% block content %}{% endblock %}
   </div>
 
-  {% block navbar %}{% endblock %}
+  {% block navbar %}
+  <nav class="navbar">
+    <a href="{% url 'home' %}" class="nav-item{% if request.path == '/' %} active{% endif %}">🏠 Home</a>
+    <a href="{% url 'order_history' %}" class="nav-item{% if request.path == '/orders/' or request.path == '/orders' or request.path|slice:"0:8" == '/orders/' %} active{% endif %}">📦 Orders</a>
+    <a href="{% url 'wallet_page' %}" class="nav-item{% if request.path == '/wallet/' or request.path == '/wallet' %} active{% endif %}">👛 Wallet</a>
+    <a href="{% url 'profile' %}" class="nav-item{% if request.path == '/profile/' or request.path == '/profile' %} active{% endif %}">👤 Profile</a>
+  </nav>
+  {% endblock %}
 
   {% block fixed_checkout_bar %}
   {% if cart_count %}
@@ -48,7 +55,8 @@
   {% endif %}
   {% endblock %}
 
-</div>
+  {% block footer %}{% endblock %}
+
 </div>
 
 <script src="{% static 'js/csrf.js' %}"></script>

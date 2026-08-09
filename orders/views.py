@@ -9,12 +9,13 @@ from django.db import transaction
 
 from catalog.models import ProductVariant
 from locations.models import Address
-from locations.utils import find_nearest_delivery_member
+from locations.utils import find_nearest_delivery_member, haversine_km
 from accounts.decorators import role_required
 from accounts.models import User
 from wallet.models import ReferralSettings, WalletTransaction
 from .cart import Cart
 from .models import Order, OrderItem, DeliveryLocationPing
+from .notifications import notify_customer, notify_area_admin
 from . import geo_cache
 
 DELIVERY_BONUS_MAP = {
@@ -142,6 +143,9 @@ def checkout(request):
                 order.save(update_fields=["wallet_amount_used"])
                 order.recalculate_total()
 
+            notify_customer(order, Order.Status.PLACED)
+            notify_area_admin(order, Order.Status.PLACED)
+
         cart.clear()
         messages.success(request, "Order placed!")
         if gift_message:
@@ -217,10 +221,44 @@ def order_tracking_data(request, order_id):
 @role_required(User.Role.AREA_ADMIN)
 def area_dashboard(request):
     area = request.user.area
-    orders = Order.objects.filter(area=area).exclude(status=Order.Status.DELIVERED)[:50]
-    delivery_members = User.objects.filter(role=User.Role.DELIVERY_MEMBER, area=area)
+    orders = list(Order.objects.filter(area=area).exclude(status=Order.Status.DELIVERED).select_related("address")[:50])
+    delivery_members = list(User.objects.filter(role=User.Role.DELIVERY_MEMBER, area=area))
+    rider_locations = geo_cache.get_rider_locations([r.id for r in delivery_members])
+    unassigned_orders = [o for o in orders if o.delivery_member_id is None]
+
+    rider_suggestions = []
+    for rider in delivery_members:
+        coords = rider_locations.get(rider.id)
+        if coords and unassigned_orders:
+            nearest_order = None
+            nearest_distance = None
+            for order in unassigned_orders:
+                distance = haversine_km(
+                    coords["latitude"], coords["longitude"],
+                    order.address.latitude, order.address.longitude,
+                )
+                if nearest_distance is None or distance < nearest_distance:
+                    nearest_distance = distance
+                    nearest_order = order
+            rider_suggestions.append({
+                "id": rider.id,
+                "name": rider.get_full_name() or rider.mobile,
+                "nearest_order_id": nearest_order.id if nearest_order else None,
+                "distance_km": round(nearest_distance, 2) if nearest_distance is not None else None,
+            })
+        else:
+            rider_suggestions.append({
+                "id": rider.id,
+                "name": rider.get_full_name() or rider.mobile,
+                "nearest_order_id": None,
+                "distance_km": None,
+            })
+
     return render(request, "orders/area_dashboard.html", {
-        "area": area, "orders": orders, "delivery_members": delivery_members,
+        "area": area,
+        "orders": orders,
+        "delivery_members": delivery_members,
+        "rider_suggestions": rider_suggestions,
     })
 
 
@@ -333,10 +371,26 @@ def area_live_map_data(request):
 
 @role_required(User.Role.DELIVERY_MEMBER)
 def delivery_dashboard(request):
-    orders = Order.objects.filter(
+    orders = list(Order.objects.filter(
         delivery_member=request.user
-    ).exclude(status__in=[Order.Status.DELIVERED, Order.Status.CANCELLED])
-    return render(request, "orders/delivery_dashboard.html", {"orders": orders})
+    ).exclude(status__in=[Order.Status.DELIVERED, Order.Status.CANCELLED]).select_related("address"))
+
+    rider_location = geo_cache.get_rider_location(request.user.id)
+    if rider_location:
+        for order in orders:
+            order.distance_from_rider = haversine_km(
+                rider_location["latitude"], rider_location["longitude"],
+                order.address.latitude, order.address.longitude,
+            )
+        orders.sort(key=lambda o: o.distance_from_rider)
+    else:
+        for order in orders:
+            order.distance_from_rider = None
+
+    return render(request, "orders/delivery_dashboard.html", {
+        "orders": orders,
+        "rider_location": rider_location,
+    })
 
 
 @role_required(User.Role.DELIVERY_MEMBER)

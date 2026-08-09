@@ -72,7 +72,10 @@ passed at signup, and returns a DRF auth token.
 3. **Celery task** to auto-assign the nearest available delivery member to
    a new order (same haversine helper used for area-assignment could do
    this too, scored across on-duty delivery members).
-4. **Product images** — `Product.image` field exists; storefront templates
+4. **WhatsApp notifications** are wired via a pluggable backend. In dev
+   mode the app logs messages instead of sending them, and you can disable
+   WhatsApp notifications entirely with `WHATSAPP_NOTIFICATIONS_ENABLED=False`.
+5. **Product images** — `Product.image` field exists; storefront templates
    currently show category emoji as a stand-in, swap in `{{ product.image.url }}`
    once you're uploading real photos.
 5. Swap SQLite → Postgres for production; your Contabo VPS + Nginx setup

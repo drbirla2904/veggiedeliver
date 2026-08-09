@@ -26,7 +26,10 @@
     <span class="pill {{ order.status }}">{{ order.get_status_display }}</span>
   </div>
   <div class="muted" style="margin:6px 0;">{{ order.address.line1 }}</div>
-  <div class="muted" style="margin-bottom:10px;">₹{{ order.grand_total }} · {{ order.get_payment_method_display }}</div>
+  <div class="muted" style="margin-bottom:10px;">
+    ₹{{ order.grand_total }} · {{ order.get_payment_method_display }}
+    {% if order.distance_from_rider is not None %}· {{ order.distance_from_rider|floatformat:2 }} km{% endif %}
+  </div>
 
   <div style="display:flex; gap:8px;">
     {% if order.status == "confirmed" %}

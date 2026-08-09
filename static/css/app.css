@@ -72,9 +72,23 @@ label{ font-size:12px; font-weight:700; color:var(--soil); display:block; margin
 .navbar{
   position:fixed; bottom:0; left:50%; transform:translateX(-50%);
   width:100%; max-width:460px; background:var(--paper); border-top:1px solid var(--border);
-  display:flex; justify-content:space-around; padding:10px 0 16px;
+  display:flex; justify-content:space-between; padding:10px 0 16px;
+  box-shadow:0 -2px 14px rgba(0,0,0,0.05);
 }
-.nav-item{ display:flex; flex-direction:column; align-items:center; gap:3px; font-size:10px; font-weight:700; color:var(--muted); }
+.nav-item{
+  display:flex; flex:1 1 0;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+  padding:0 6px;
+  font-size:10px;
+  font-weight:700;
+  color:var(--muted);
+  text-align:center;
+  min-width:64px;
+}
+.nav-item:hover{ color:var(--soil); }
 .nav-item.active{ color:var(--leaf); }
 
 .map-box{ height:220px; border-radius:14px; overflow:hidden; margin-bottom:12px; border:1px solid var(--border); }
@@ -109,7 +123,7 @@ table th{ color:var(--muted); font-size:11px; text-transform:uppercase; }
   position:fixed;
   left:0;
   right:0;
-  bottom:0;
+  bottom:40px;
   z-index:50;
   padding:12px;
   background:rgba(255,255,255,0.96);
@@ -118,6 +132,43 @@ table th{ color:var(--muted); font-size:11px; text-transform:uppercase; }
 .fixed-checkout-bar .btn{
   width:100%;
 }
+
+.site-footer{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  z-index:40;
+  background:var(--soil);
+  color:var(--cream);
+  display:flex;
+  justify-content:space-around;
+  align-items:center;
+  gap:0;
+  padding:10px 0 14px;
+  font-size:11px;
+  border-top:1px solid rgba(255,255,255,0.12);
+  box-shadow:0 -2px 16px rgba(0,0,0,0.08);
+}
+.site-footer .footer-item{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  min-width:80px;
+  padding:4px 8px;
+  color:var(--cream);
+  opacity:.75;
+  transition:opacity .2s ease, transform .2s ease, color .2s ease;
+  text-align:center;
+}
+.site-footer .footer-item:hover{ opacity:1; transform:translateY(-1px); }
+.site-footer .footer-item.active{ opacity:1; color:var(--harvest); font-weight:700; }
+.site-footer .footer-icon{ font-size:18px; line-height:1; }
+.site-footer .footer-item span{ display:block; }
+
+.wrap{ padding:18px 20px 140px; }
 
 .otp-boxes{ display:flex; gap:8px; margin-bottom:16px; }
 .otp-boxes input{ text-align:center; font-size:20px; margin-bottom:0; }

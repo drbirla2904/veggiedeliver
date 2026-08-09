@@ -10,11 +10,56 @@
 
 <div class="card">
   <div class="muted" style="margin-bottom:6px;">Your referral link</div>
-  <div style="word-break:break-all; font-weight:700; margin-bottom:10px;">
+  <div id="referral-link" style="word-break:break-all; font-weight:700; margin-bottom:10px;">
     {{ request.scheme }}://{{ request.get_host }}{% url 'login' %}?ref={{ user.referral_code }}
   </div>
+  <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+    <button class="btn" type="button" onclick="copyReferralLink()">Copy link</button>
+    <button class="btn secondary" type="button" onclick="shareReferralLink()">Share referral</button>
+  </div>
+  <div id="referral-feedback" class="muted" style="margin-bottom:10px; min-height:18px"></div>
   <div class="muted">Share it — when someone you referred completes a delivered order, you get a bonus credited automatically.</div>
 </div>
+<script>
+  function getReferralUrl() {
+    return document.getElementById('referral-link').textContent.trim();
+  }
+
+  function showReferralFeedback(message) {
+    var feedback = document.getElementById('referral-feedback');
+    feedback.textContent = message;
+  }
+
+  function copyReferralLink() {
+    var url = getReferralUrl();
+    if (!navigator.clipboard) {
+      showReferralFeedback('Copying is not supported by this browser.');
+      return;
+    }
+    navigator.clipboard.writeText(url).then(function() {
+      showReferralFeedback('Referral link copied to clipboard!');
+    }, function() {
+      showReferralFeedback('Unable to copy link. Please copy it manually.');
+    });
+  }
+
+  function shareReferralLink() {
+    var url = getReferralUrl();
+    if (navigator.share) {
+      navigator.share({
+        title: 'Join me on Taazgi',
+        text: 'Use my referral link to get started with Taazgi.',
+        url: url,
+      }).then(function() {
+        showReferralFeedback('Referral shared successfully!');
+      }).catch(function() {
+        showReferralFeedback('Share cancelled or unavailable.');
+      });
+      return;
+    }
+    copyReferralLink();
+  }
+</script>
 
 <h3 class="section-title">Transaction history</h3>
 {% if transactions %}

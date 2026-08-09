@@ -5,6 +5,28 @@
 <h2 class="section-title">{{ area.name }} — active orders</h2>
 <a href="{% url 'area_live_map' %}" class="btn secondary full" style="margin-bottom:16px;">🗺️ View live rider map</a>
 
+<div class="card" style="margin-bottom:16px;">
+  <h3>Nearest-order suggestions</h3>
+  {% if rider_suggestions %}
+    <div style="display:grid; gap:10px;">
+      {% for suggestion in rider_suggestions %}
+      <div class="row" style="justify-content:space-between; gap:12px;">
+        <span><b>{{ suggestion.name }}</b></span>
+        <span class="muted">
+          {% if suggestion.nearest_order_id %}
+            nearest order #{{ suggestion.nearest_order_id }} · {{ suggestion.distance_km }} km
+          {% else %}
+            no nearby unassigned order or rider location
+          {% endif %}
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="muted">No riders or active orders available for suggestions.</div>
+  {% endif %}
+</div>
+
 {% if orders %}
 {% for order in orders %}
 <div class="card">

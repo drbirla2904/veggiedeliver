@@ -180,6 +180,13 @@ FAST2SMS_API_KEY = os.environ.get('FAST2SMS_API_KEY', '')
 MSG91_AUTH_KEY = os.environ.get('MSG91_AUTH_KEY', '')
 MSG91_FLOW_ID = os.environ.get('MSG91_FLOW_ID', '')
 
+# --- WhatsApp gateway -------------------------------------------------------
+# Use the same MSG91 credentials if you want WhatsApp via MSG91; set
+# WHATSAPP_BACKEND=msg91 and WHATSAPP_FLOW_ID to your WhatsApp flow id.
+WHATSAPP_BACKEND = os.environ.get('WHATSAPP_BACKEND', 'console')
+WHATSAPP_FLOW_ID = os.environ.get('WHATSAPP_FLOW_ID', '')
+WHATSAPP_NOTIFICATIONS_ENABLED = os.environ.get('WHATSAPP_NOTIFICATIONS_ENABLED', 'True') == 'True'
+
 OTP_RESEND_COOLDOWN_SECONDS = 30
 OTP_MAX_VERIFY_ATTEMPTS = 5
 
@@ -199,7 +206,18 @@ _codespace_name = os.environ.get('CODESPACE_NAME')
 _forwarding_domain = os.environ.get('GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN', 'app.github.dev')
 if _codespace_name:
     codespace_port = os.environ.get('PORT', '8000')
-    CSRF_TRUSTED_ORIGINS.append(f'https://{_codespace_name}-{codespace_port}.{_forwarding_domain}')
+    forwarded_host = f'{_codespace_name}-{codespace_port}.{_forwarding_domain}'
+    CSRF_TRUSTED_ORIGINS.append(f'https://{forwarded_host}')
+    CSRF_COOKIE_DOMAIN = f'.{_forwarding_domain}'
+    SESSION_COOKIE_DOMAIN = f'.{_forwarding_domain}'
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = True
+
+# When running behind the Codespaces HTTPS forwarding proxy, Django must
+# trust the proxy's forwarded host and protocol. Otherwise CSRF cookies and
+# secure URL generation can mismatch the browser's actual origin.
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Add any extra trusted origins via env var, comma-separated, e.g. your
 # production domain: CSRF_TRUSTED_ORIGINS_EXTRA=https://taazgi.com
