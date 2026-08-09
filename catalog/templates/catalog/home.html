@@ -2,8 +2,9 @@
 {% block title %}Taazgi — Fresh from the Farm{% endblock %}
 {% block content %}
 
-<h1 style="font-size:22px; margin-bottom:4px;">Farm-cut vegetables, on your table today.</h1>
-<p class="muted" style="margin-bottom:18px;">Pick your area's freshest picks below.</p>
+<div class="auth-card">
+  <h1 class="section-title">Farm-cut vegetables, on your table today.</h1>
+  <p class="muted" style="margin-bottom:18px;">Pick your area's freshest picks below.</p>
 
 <div class="cat-row" style="margin-bottom:18px;">
   <a href="{% url 'home' %}" class="cat-chip">
@@ -22,7 +23,7 @@
 <div class="grid">
   {% for product, variant in product_cards %}
   <div class="pcard">
-    <a href="{% url 'product_detail' product.id %}">
+    <a href="{% url 'product_detail' product.id %}" aria-label="View {{ product.name }}">
       <div class="img" {% if product.image %}style="background-image:url('{{ product.image.url }}'); background-size:cover; background-position:center;"{% endif %}>
         {% if not product.image %}{{ product.category.icon_emoji|default:"🥕" }}{% endif %}
       </div>
@@ -31,11 +32,11 @@
     </a>
     <div class="foot">
       <div class="price">₹{{ variant.price }}</div>
-      <form method="post" action="{% url 'add_to_cart' variant.id %}" class="ajax-add">
+      <form method="post" action="{% url 'add_to_cart' variant.id %}" class="ajax-add" aria-label="Add {{ product.name }} to cart">
         {% csrf_token %}
         <input type="hidden" name="quantity" value="1">
         <input type="hidden" name="next" value="{{ request.path }}">
-        <button class="btn" style="padding:6px 12px; font-size:16px;" type="submit">+</button>
+        <button class="btn" style="padding:6px 12px; font-size:16px;" type="submit" aria-label="Add {{ product.name }}">+</button>
       </form>
     </div>
   </div>
@@ -44,6 +45,8 @@
 {% else %}
 <div class="empty">No products here yet. Check back soon 🌱</div>
 {% endif %}
+
+</div>
 
 {% endblock %}
 

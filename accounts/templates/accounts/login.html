@@ -2,45 +2,56 @@
 {% block title %}Log in — Taazgi{% endblock %}
 {% block appbar_actions %}{% endblock %}
 {% block content %}
+<div class="card auth-card">
+  <div class="auth-hero" aria-hidden="true">
+    <svg width="72" height="72" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2c2.21 0 4 1.79 4 4 0 2.21-1.79 4-4 4s-4-1.79-4-4c0-2.21 1.79-4 4-4z" fill="var(--harvest)"/>
+      <path d="M6 14c0 3.31 2.69 6 6 6s6-2.69 6-6c0-3.31-2.69-6-6-6S6 10.69 6 14z" fill="var(--leaf)"/>
+    </svg>
+  </div>
+  <div class="auth-illustration-wrap" aria-hidden="true">
+    <img src="/static/img/auth-illustration.svg" alt="" class="auth-illustration">
+  </div>
+  <h1 class="section-title">
+    {% if step == "otp" %}Enter the OTP{% else %}Fresh veggies, one login away{% endif %}
+  </h1>
+  <p class="muted" style="margin-bottom:18px;">
+    {% if step == "otp" %}
+      We sent a 6-digit code to <b>+91 {{ mobile }}</b>
+    {% else %}
+      Log in or sign up with your mobile number — no password needed.
+    {% endif %}
+  </p>
 
-<h1 style="font-size:24px; margin-bottom:6px;">
-  {% if step == "otp" %}Enter the OTP{% else %}Fresh veggies, one login away{% endif %}
-</h1>
-<p class="muted" style="margin-bottom:20px;">
   {% if step == "otp" %}
-    We sent a 6-digit code to <b>+91 {{ mobile }}</b>
-  {% else %}
-    Log in or sign up with your mobile number — no password needed.
-  {% endif %}
-</p>
-
-{% if step == "otp" %}
-<form method="post">
-  {% csrf_token %}
-  <label for="code">OTP</label>
-  <input type="text" name="code" id="code" maxlength="6" inputmode="numeric" placeholder="6-digit code" autofocus required>
-
-  <label for="first_name">Your name <span class="muted">(first time only)</span></label>
-  <input type="text" name="first_name" id="first_name" placeholder="e.g. Asha">
-
-  <button class="btn full" type="submit">Verify & continue</button>
-</form>
-<p class="muted" style="margin-top:14px;">
-  <a href="{% url 'login' %}">← Use a different number</a>
-  &nbsp;·&nbsp;
-  <form method="post" action="{% url 'login' %}" style="display:inline;">
+  <form method="post" class="auth-form">
     {% csrf_token %}
-    <input type="hidden" name="mobile" value="{{ mobile }}">
-    <button type="submit" style="background:none; border:none; padding:0; color:var(--leaf); font-weight:700; cursor:pointer;">Resend OTP</button>
-  </form>
-</p>
-{% else %}
-<form method="post">
-  {% csrf_token %}
-  <label for="mobile">Mobile number</label>
-  <input type="tel" name="mobile" id="mobile" maxlength="10" inputmode="numeric" placeholder="10-digit mobile number" autofocus required>
-  <button class="btn full" type="submit">Send OTP</button>
-</form>
-{% endif %}
+    <label for="code">OTP</label>
+    <input type="text" name="code" id="code" maxlength="6" inputmode="numeric" placeholder="6-digit code" autofocus required>
 
+    {% if show_name %}
+    <label for="first_name">Your name <span class="muted">(first time only)</span></label>
+    <input type="text" name="first_name" id="first_name" placeholder="e.g. Asha">
+    {% endif %}
+
+    <button class="btn full" type="submit" aria-label="Verify and continue">Verify &amp; continue</button>
+  </form>
+  <p class="muted" style="margin-top:14px;">
+    <a href="{% url 'login' %}">← Use a different number</a>
+    &nbsp;·&nbsp;
+    <form method="post" action="{% url 'login' %}" style="display:inline;" aria-label="Resend OTP form">
+      {% csrf_token %}
+      <input type="hidden" name="mobile" value="{{ mobile }}">
+      <button type="submit" style="background:none; border:none; padding:0; color:var(--leaf); font-weight:700; cursor:pointer;" aria-label="Resend OTP">Resend OTP</button>
+    </form>
+  </p>
+  {% else %}
+  <form method="post" class="auth-form">
+    {% csrf_token %}
+    <label for="mobile">Mobile number</label>
+    <input type="tel" name="mobile" id="mobile" maxlength="10" inputmode="numeric" placeholder="10-digit mobile number" autofocus required>
+    <button class="btn full" type="submit" aria-label="Send OTP">Send OTP</button>
+  </form>
+  {% endif %}
+</div>
 {% endblock %}

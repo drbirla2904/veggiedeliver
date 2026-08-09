@@ -6,9 +6,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% block title %}Taazgi{% endblock %}</title>
 <link rel="stylesheet" href="{% static 'css/app.css' %}">
+<link rel="icon" href="/static/img/favicon.svg" type="image/svg+xml">
 {% block extra_head %}{% endblock %}
 </head>
 <body>
+<a href="#content" class="skip-link">Skip to content</a>
 <div class="device">
 
   <div class="appbar">
@@ -29,14 +31,14 @@
     </div>
   </div>
 
-  <div class="wrap">
+  <main id="content" class="wrap">
     {% if messages %}
       {% for message in messages %}
         <div class="flash {{ message.tags }}">{{ message }}</div>
       {% endfor %}
     {% endif %}
     {% block content %}{% endblock %}
-  </div>
+  </main>
 
   {% block navbar %}
   <nav class="navbar">

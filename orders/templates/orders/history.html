@@ -3,8 +3,9 @@
 {% block content %}
 <h2 class="section-title">Your orders</h2>
 {% if orders %}
+<div class="auth-card">
   {% for order in orders %}
-  <a href="{% url 'order_detail' order.id %}" class="card row">
+  <a href="{% url 'order_detail' order.id %}" class="card row order-link">
     <div>
       <b>Order #{{ order.id }}</b><br>
       <span class="muted">{{ order.placed_at|date:"d M, h:i A" }} · ₹{{ order.grand_total }}</span>
@@ -12,6 +13,7 @@
     <span class="pill {{ order.status }}">{{ order.get_status_display }}</span>
   </a>
   {% endfor %}
+  </div>
 {% else %}
   <div class="empty">No orders yet.<br><a href="{% url 'home' %}" class="btn secondary" style="margin-top:14px;">Start shopping</a></div>
 {% endif %}

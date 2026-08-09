@@ -129,6 +129,9 @@ def verify_otp_page(request):
     if not mobile:
         return redirect("login")
 
+    existing_user = User.objects.filter(mobile=mobile).first()
+    show_name = not existing_user or not existing_user.first_name
+
     if request.method == "POST":
         code = request.POST.get("code", "").strip()
         name = request.POST.get("first_name", "").strip()
@@ -142,7 +145,7 @@ def verify_otp_page(request):
 
         if not ok:
             messages.error(request, "Invalid or expired OTP. Please try again.")
-            return render(request, "accounts/login.html", {"step": "otp", "mobile": mobile})
+            return render(request, "accounts/login.html", {"step": "otp", "mobile": mobile, "show_name": show_name})
 
         user, created = User.objects.get_or_create(
             mobile=mobile,
@@ -153,9 +156,13 @@ def verify_otp_page(request):
                 "mobile_verified": True,
             },
         )
-        if not created and not user.mobile_verified:
-            user.mobile_verified = True
-            user.save(update_fields=["mobile_verified"])
+        if not created:
+            if not user.mobile_verified:
+                user.mobile_verified = True
+                user.save(update_fields=["mobile_verified"])
+            elif not user.first_name and name:
+                user.first_name = name
+                user.save(update_fields=["first_name"])
 
         ref_code = request.session.pop("pending_referral_code", None)
         if created and ref_code:
@@ -166,7 +173,8 @@ def verify_otp_page(request):
 
         auth_login(request, user, backend="django.contrib.auth.backends.ModelBackend")
         request.session.pop("pending_mobile", None)
-        messages.success(request, f"Welcome{', ' + name if name else ''}!")
+        welcome_name = name or user.first_name
+        messages.success(request, f"Welcome{', ' + welcome_name if welcome_name else ''}!")
 
         if user.role == User.Role.AREA_ADMIN:
             return redirect("area_dashboard")
@@ -174,7 +182,7 @@ def verify_otp_page(request):
             return redirect("delivery_dashboard")
         return redirect("home")
 
-    return render(request, "accounts/login.html", {"step": "otp", "mobile": mobile})
+    return render(request, "accounts/login.html", {"step": "otp", "mobile": mobile, "show_name": show_name})
 
 
 def logout_view(request):

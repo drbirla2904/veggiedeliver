@@ -2,23 +2,25 @@
 {% block title %}Wallet — Taazgi{% endblock %}
 {% block content %}
 
-<div class="card" style="text-align:center; padding:24px;">
-  <div class="muted">Wallet balance</div>
-  <div style="font-family:'Fraunces',serif; font-size:34px; font-weight:600; color:var(--leaf); margin:6px 0;">₹{{ wallet.balance }}</div>
-  <div class="muted">Earned only through referrals — use it at checkout.</div>
-</div>
+<div class="auth-card">
+  <div class="card" style="text-align:center; padding:24px;">
+    <div class="muted">Wallet balance</div>
+    <div style="font-family:'Fraunces',serif; font-size:34px; font-weight:600; color:var(--leaf); margin:6px 0;">₹{{ wallet.balance }}</div>
+    <div class="muted">Earned only through referrals — use it at checkout.</div>
+  </div>
 
-<div class="card">
-  <div class="muted" style="margin-bottom:6px;">Your referral link</div>
-  <div id="referral-link" style="word-break:break-all; font-weight:700; margin-bottom:10px;">
-    {{ request.scheme }}://{{ request.get_host }}{% url 'login' %}?ref={{ user.referral_code }}
+  <div class="card">
+    <div class="muted" style="margin-bottom:6px;">Your referral link</div>
+    <div id="referral-link" style="word-break:break-all; font-weight:700; margin-bottom:10px;">
+      {{ request.scheme }}://{{ request.get_host }}{% url 'login' %}?ref={{ user.referral_code }}
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+      <button class="btn" type="button" onclick="copyReferralLink()" aria-label="Copy referral link">Copy link</button>
+      <button class="btn secondary" type="button" onclick="shareReferralLink()" aria-label="Share referral link">Share referral</button>
+    </div>
+    <div id="referral-feedback" class="muted" style="margin-bottom:10px; min-height:18px"></div>
+    <div class="muted">Share it — when someone you referred completes a delivered order, you get a bonus credited automatically.</div>
   </div>
-  <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
-    <button class="btn" type="button" onclick="copyReferralLink()">Copy link</button>
-    <button class="btn secondary" type="button" onclick="shareReferralLink()">Share referral</button>
-  </div>
-  <div id="referral-feedback" class="muted" style="margin-bottom:10px; min-height:18px"></div>
-  <div class="muted">Share it — when someone you referred completes a delivered order, you get a bonus credited automatically.</div>
 </div>
 <script>
   function getReferralUrl() {

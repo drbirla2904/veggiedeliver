@@ -3,24 +3,25 @@
 {% block content %}
 <h2 class="section-title">Your cart</h2>
 
+<div class="auth-card">
 {% if line_items %}
   {% for variant, qty, line_total in line_items %}
-  <div class="card row">
+  <div class="card row align-center">
     <div>
       <b>{{ variant.product.name }}</b><br>
       <span class="muted">{{ variant.label }}</span>
     </div>
-    <div style="text-align:right;">
-      <form method="post" action="{% url 'update_cart_item' variant.id %}" style="display:inline-flex; gap:6px; align-items:center; margin-bottom:6px;">
+    <div class="text-right">
+      <form method="post" action="{% url 'update_cart_item' variant.id %}" class="inline-form">
         {% csrf_token %}
-        <input type="number" name="quantity" value="{{ qty }}" min="0" style="width:56px; margin:0; padding:4px 6px;">
-        <button class="btn secondary" style="padding:5px 10px; font-size:11px;" type="submit">Update</button>
+        <input type="number" name="quantity" value="{{ qty }}" min="0" class="qty-input">
+        <button class="btn secondary small" type="submit">Update</button>
       </form>
-      <br>
+      <div style="height:6px;"></div>
       <b>₹{{ line_total }}</b>
       <form method="post" action="{% url 'remove_from_cart' variant.id %}" style="display:inline;">
         {% csrf_token %}
-        <button class="btn clay" style="padding:4px 8px; font-size:11px; margin-left:8px;" type="submit">Remove</button>
+        <button class="btn clay small" type="submit">Remove</button>
       </form>
     </div>
   </div>
@@ -34,6 +35,7 @@
 {% else %}
   <div class="empty">Your cart is empty.<br><a href="{% url 'home' %}" class="btn secondary" style="margin-top:14px;">Browse vegetables</a></div>
 {% endif %}
+</div>
 {% endblock %}
 
 {% block fixed_checkout_bar %}{% endblock %}

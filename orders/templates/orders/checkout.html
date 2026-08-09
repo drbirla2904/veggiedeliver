@@ -12,11 +12,12 @@
 {% block content %}
 <h2 class="section-title">Checkout</h2>
 
+<div class="auth-card">
 {% if addresses %}
-<h3 style="font-size:13px; margin-bottom:8px;">Use a saved address</h3>
+<h3 class="muted small" style="margin-bottom:8px;">Use a saved address</h3>
 {% for addr in addresses %}
-<label class="card" style="display:flex; gap:10px; align-items:flex-start; cursor:pointer;">
-  <input type="radio" name="saved_address_choice" value="{{ addr.id }}" style="width:auto; margin:4px 0 0;" onclick="selectSaved({{ addr.id }})">
+<label class="card label-card">
+  <input type="radio" name="saved_address_choice" value="{{ addr.id }}" onclick="selectSaved({{ addr.id }})">
   <span><b>{{ addr.label }}</b><br><span class="muted">{{ addr.line1 }}{% if addr.landmark %}, {{ addr.landmark }}{% endif %}</span></span>
 </label>
 {% endfor %}
@@ -86,6 +87,7 @@
 
   <button class="btn full clay" type="submit">Place order — Cash on Delivery</button>
 </form>
+</div>
 
 <script>
   const map = L.map('pin-map').setView([23.2599, 77.4126], 12); // Bhopal default center
