@@ -20,10 +20,9 @@ from . import geo_cache
 
 DELIVERY_BONUS_MAP = {
     Order.DeliverySpeed.INSTANT: Decimal("0.00"),
-    Order.DeliverySpeed.THREE_TO_FOUR_HOURS: Decimal("5.00"),
-    Order.DeliverySpeed.NEXT_DAY: Decimal("10.00"),
+    Order.DeliverySpeed.TWO_TO_FOUR_HOURS: Decimal("5.00"),
+    Order.DeliverySpeed.NEXT_DAY_MORNING: Decimal("0.00"),
 }
-GIFT_THRESHOLD = Decimal("100.00")
 
 
 # ---------------------------------------------------------------------------
@@ -87,19 +86,23 @@ def checkout(request):
         (subtotal * settings_row.max_wallet_usage_percent / 100).quantize(Decimal("0.01")),
     )
 
-    gift_trigger_amount = Decimal("100.00")
-    gift_message = subtotal >= gift_trigger_amount
-    delivery_bonus_map = {
-        Order.DeliverySpeed.INSTANT: Decimal("0.00"),
-        Order.DeliverySpeed.THREE_TO_FOUR_HOURS: Decimal("5.00"),
-        Order.DeliverySpeed.NEXT_DAY: Decimal("10.00"),
-    }
+    delivery_fee = (
+        Decimal("0.00")
+        if subtotal >= settings_row.free_delivery_minimum
+        else settings_row.delivery_charge
+    )
 
     if request.method == "POST":
+        if subtotal < settings_row.minimum_order_amount:
+            messages.error(
+                request,
+                f"Minimum order value is ₹{settings_row.minimum_order_amount}.",
+            )
+            return redirect("cart")
+
         address_id = request.POST.get("address_id")
-        use_wallet = request.POST.get("use_wallet") == "on"
         delivery_speed = request.POST.get("delivery_speed", Order.DeliverySpeed.INSTANT)
-        delivery_bonus = delivery_bonus_map.get(delivery_speed, Decimal("0.00"))
+        delivery_bonus = DELIVERY_BONUS_MAP.get(delivery_speed, Decimal("0.00"))
 
         if address_id:
             address = get_object_or_404(Address, pk=address_id, customer=request.user)
@@ -131,12 +134,13 @@ def checkout(request):
                 payment_method=Order.PaymentMethod.COD,
                 delivery_speed=delivery_speed,
                 delivery_bonus=delivery_bonus,
+                delivery_fee=delivery_fee,
             )
             for variant, qty, _ in cart.line_items():
                 OrderItem.objects.create(order=order, variant=variant, quantity=qty, unit_price=variant.price)
             order.recalculate_total()
 
-            if use_wallet and max_wallet_usable > 0:
+            if max_wallet_usable > 0:
                 spend = min(max_wallet_usable, order.grand_total)
                 request.user.wallet.debit(spend, reason="order_payment", related_order=order)
                 order.wallet_amount_used = spend
@@ -148,10 +152,10 @@ def checkout(request):
 
         cart.clear()
         messages.success(request, "Order placed!")
-        if gift_message:
+        if delivery_speed == Order.DeliverySpeed.NEXT_DAY_MORNING:
             messages.success(
                 request,
-                "🎁 Congrats! Your order qualifies for a gift at delivery.",
+                "🎁 Your gift will be given at the time of delivery.",
                 extra_tags="gift",
             )
         return redirect("order_detail", order_id=order.id)
@@ -161,8 +165,9 @@ def checkout(request):
         "subtotal": subtotal,
         "wallet_balance": wallet_balance,
         "max_wallet_usable": max_wallet_usable,
-        "gift_message": gift_message,
-        "gift_trigger_amount": gift_trigger_amount,
+        "delivery_fee": delivery_fee,
+        "minimum_order_amount": settings_row.minimum_order_amount,
+        "free_delivery_minimum": settings_row.free_delivery_minimum,
         "cart_count": cart.count(),
     })
 

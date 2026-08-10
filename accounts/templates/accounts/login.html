@@ -2,16 +2,7 @@
 {% block title %}Log in — Taazgi{% endblock %}
 {% block appbar_actions %}{% endblock %}
 {% block content %}
-<div class="card auth-card">
-  <div class="auth-hero" aria-hidden="true">
-    <svg width="72" height="72" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 2c2.21 0 4 1.79 4 4 0 2.21-1.79 4-4 4s-4-1.79-4-4c0-2.21 1.79-4 4-4z" fill="var(--harvest)"/>
-      <path d="M6 14c0 3.31 2.69 6 6 6s6-2.69 6-6c0-3.31-2.69-6-6-6S6 10.69 6 14z" fill="var(--leaf)"/>
-    </svg>
-  </div>
-  <div class="auth-illustration-wrap" aria-hidden="true">
-    <img src="/static/img/auth-illustration.svg" alt="" class="auth-illustration">
-  </div>
+<div>
   <h1 class="section-title">
     {% if step == "otp" %}Enter the OTP{% else %}Fresh veggies, one login away{% endif %}
   </h1>

@@ -19,8 +19,8 @@ class Order(models.Model):
 
     class DeliverySpeed(models.TextChoices):
         INSTANT = "instant", "Instant"
-        THREE_TO_FOUR_HOURS = "3_4_hours", "3-4 hours"
-        NEXT_DAY = "next_day", "Next day"
+        TWO_TO_FOUR_HOURS = "2_4_hours", "2-4 Hours"
+        NEXT_DAY_MORNING = "next_day_morning", "Next day Morning"
 
     customer = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="orders"

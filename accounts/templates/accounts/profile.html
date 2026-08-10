@@ -2,23 +2,41 @@
 {% block title %}Profile — Taazgi{% endblock %}
 {% block content %}
 <div class="auth-card">
-  <div class="auth-hero" aria-hidden="true">
-    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 2c2.21 0 4 1.79 4 4 0 2.21-1.79 4-4 4s-4-1.79-4-4c0-2.21 1.79-4 4-4z" fill="var(--harvest)"/>
-      <path d="M6 14c0 3.31 2.69 6 6 6s6-2.69 6-6c0-3.31-2.69-6-6-6S6 10.69 6 14z" fill="var(--leaf)"/>
-    </svg>
-  </div>
-  <h2 class="section-title">Your profile</h2>
-  <div class="auth-illustration-wrap">
-    <img src="/static/img/auth-illustration.svg" alt="illustration" class="auth-illustration">
-  </div>
+  <h2 class="section-title">Profile</h2>
   <div class="card">
     <div class="row"><span class="muted">Name</span><b>{{ user.get_full_name|default:"—" }}</b></div>
-    <div class="row" style="margin-top:8px;"><span class="muted">Mobile</span><b>+91 {{ user.mobile }}</b></div>
+    <div class="row" style="margin-top:8px;"><span class="muted">Mobile number</span><b>+91 {{ user.mobile }}</b></div>
     <div class="row" style="margin-top:8px;"><span class="muted">Referral code</span><b>{{ user.referral_code }}</b></div>
   </div>
-  <a class="btn secondary full" href="{% url 'order_history' %}">Your orders</a>
-  <div style="height:10px;"></div>
-  <a class="btn secondary full" href="{% url 'wallet_page' %}">Wallet & referrals</a>
+  <button
+    class="btn secondary full"
+    type="button"
+    id="share-referral"
+    data-share-url="{{ request.scheme }}://{{ request.get_host }}{% url 'login' %}?ref={{ user.referral_code }}"
+  >
+    Share referral code
+  </button>
+  <p class="muted" id="share-status" role="status" aria-live="polite"></p>
 </div>
+
+<script>
+  const shareButton = document.getElementById('share-referral');
+  const shareStatus = document.getElementById('share-status');
+  const shareUrl = shareButton.dataset.shareUrl;
+  const shareText = `Join Taazgi with my referral code: {{ user.referral_code|escapejs }}`;
+
+  shareButton.addEventListener('click', async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Join Taazgi', text: shareText, url: shareUrl });
+        shareStatus.textContent = 'Referral link shared.';
+      } else {
+        await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+        shareStatus.textContent = 'Referral link copied.';
+      }
+    } catch (error) {
+      if (error.name !== 'AbortError') shareStatus.textContent = 'Unable to share right now.';
+    }
+  });
+</script>
 {% endblock %}

@@ -84,7 +84,7 @@ class OrderNotificationTests(TestCase):
             reverse("checkout"),
             {
                 "address_id": self.address.id,
-                "delivery_speed": Order.DeliverySpeed.NEXT_DAY,
+                "delivery_speed": Order.DeliverySpeed.TWO_TO_FOUR_HOURS,
             },
         )
         order = Order.objects.latest("pk")
@@ -92,7 +92,7 @@ class OrderNotificationTests(TestCase):
         order.status = Order.Status.OUT_FOR_DELIVERY
         order.save(update_fields=["delivery_member", "status"])
 
-        self.assertEqual(order.delivery_bonus, Decimal("10.00"))
+        self.assertEqual(order.delivery_bonus, Decimal("5.00"))
         order.status = Order.Status.DELIVERED
         order.save(update_fields=["status"])
 
@@ -100,6 +100,55 @@ class OrderNotificationTests(TestCase):
             related_order=order,
             reason=WalletTransaction.Reason.DELIVERY_BONUS,
         ).exists())
+
+    def test_order_below_minimum_is_rejected(self):
+        from wallet.models import ReferralSettings
+
+        self.client.force_login(self.user)
+        session = self.client.session
+        session["cart"] = {str(self.variant.id): 1}
+        session.save()
+        ReferralSettings.objects.create(minimum_order_amount=Decimal("200.00"))
+
+        response = self.client.post(reverse("checkout"), {
+            "address_id": self.address.id,
+            "delivery_speed": Order.DeliverySpeed.INSTANT,
+        })
+
+        self.assertRedirects(response, reverse("cart"))
+        self.assertFalse(Order.objects.exists())
+
+    def test_free_delivery_threshold_is_applied(self):
+        from wallet.models import ReferralSettings
+
+        self.client.force_login(self.user)
+        session = self.client.session
+        session["cart"] = {str(self.variant.id): 1}
+        session.save()
+        ReferralSettings.objects.create(free_delivery_minimum=Decimal("100.00"))
+
+        self.client.post(reverse("checkout"), {
+            "address_id": self.address.id,
+            "delivery_speed": Order.DeliverySpeed.INSTANT,
+        })
+
+        self.assertEqual(Order.objects.latest("pk").delivery_fee, Decimal("0.00"))
+
+    def test_wallet_balance_is_applied_automatically(self):
+        self.client.force_login(self.user)
+        self.user.wallet.credit(Decimal("80.00"), reason="adjustment")
+        session = self.client.session
+        session["cart"] = {str(self.variant.id): 1}
+        session.save()
+
+        self.client.post(reverse("checkout"), {
+            "address_id": self.address.id,
+            "delivery_speed": Order.DeliverySpeed.INSTANT,
+        })
+
+        order = Order.objects.latest("pk")
+        self.assertEqual(order.wallet_amount_used, Decimal("62.50"))
+        self.assertEqual(order.grand_total, Decimal("62.50"))
 
     def test_referral_bonus_is_paid_once_after_first_delivered_order(self):
         from wallet.models import ReferralSettings, WalletTransaction

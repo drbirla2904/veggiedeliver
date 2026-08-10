@@ -37,6 +37,7 @@
   {% if order.wallet_amount_used > 0 %}
   <div class="row muted"><span>Wallet used</span><span>−₹{{ order.wallet_amount_used }}</span></div>
   {% endif %}
+  <div class="row muted"><span>Delivery</span><span>{% if order.delivery_fee %}₹{{ order.delivery_fee }}{% else %}Free{% endif %}</span></div>
   <div class="row muted"><span>Delivery speed</span><span>{{ order.get_delivery_speed_display }}</span></div>
   {% if order.delivery_bonus > 0 %}
   <div class="row muted"><span>Delivery bonus</span><span>₹{{ order.delivery_bonus }}</span></div>

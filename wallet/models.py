@@ -75,6 +75,18 @@ class ReferralSettings(models.Model):
         max_digits=4, decimal_places=1, default=Decimal("50.0"),
         help_text="Max % of an order's value that can be paid from wallet balance."
     )
+    minimum_order_amount = models.DecimalField(
+        max_digits=8, decimal_places=2, default=Decimal("50.00"),
+        help_text="Orders below this amount cannot be placed."
+    )
+    delivery_charge = models.DecimalField(
+        max_digits=8, decimal_places=2, default=Decimal("20.00"),
+        help_text="Delivery charge applied below the free-delivery threshold."
+    )
+    free_delivery_minimum = models.DecimalField(
+        max_digits=8, decimal_places=2, default=Decimal("100.00"),
+        help_text="Orders at or above this amount get free delivery."
+    )
 
     class Meta:
         verbose_name = "Referral Settings"

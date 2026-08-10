@@ -51,37 +51,48 @@
     <input type="text" name="pincode" id="pincode_field" maxlength="6">
   </div>
 
-  {% if gift_message %}
-  <div class="flash success" style="margin-bottom:14px;">
-    🎁 Your order is above ₹{{ gift_trigger_amount }} — you will receive a gift at delivery!
-  </div>
-  {% endif %}
-
-  <div class="card">
-    <div style="margin-bottom:10px; font-weight:700;">Delivery time</div>
-    <label style="display:block; margin-bottom:8px;">
-      <input type="radio" name="delivery_speed" value="instant" checked>
-      Instant delivery (no bonus)
-    </label>
-    <label style="display:block; margin-bottom:8px;">
-      <input type="radio" name="delivery_speed" value="3_4_hours">
-      3-4 hour delivery (₹5 wallet bonus after delivery)
-    </label>
-    <label style="display:block; margin-bottom:8px;">
-      <input type="radio" name="delivery_speed" value="next_day">
-      Next day delivery (₹10 wallet bonus after delivery)
-    </label>
+  <div class="card delivery-card">
+    <div class="delivery-heading">
+      <div>
+        <div class="delivery-title">Delivery time</div>
+        <div class="muted small">Choose what works best for you</div>
+      </div>
+      <span class="delivery-icon" aria-hidden="true">⏱</span>
+    </div>
+    <div class="delivery-options">
+      <label class="delivery-option selected">
+        <input type="radio" name="delivery_speed" value="instant" checked>
+        <span class="delivery-copy">
+          <strong>Instant</strong>
+          <small>Fast delivery, no bonus</small>
+        </span>
+        <span class="delivery-check" aria-hidden="true"></span>
+      </label>
+      <label class="delivery-option">
+        <input type="radio" name="delivery_speed" value="2_4_hours">
+        <span class="delivery-copy">
+          <strong>2-4 Hours</strong>
+          <small>Get ₹5 wallet bonus after delivery</small>
+        </span>
+        <span class="delivery-check" aria-hidden="true"></span>
+      </label>
+      <label class="delivery-option">
+        <input type="radio" name="delivery_speed" value="next_day_morning">
+        <span class="delivery-copy">
+          <strong>Next day Morning</strong>
+          <small>Gift at the time of delivery</small>
+        </span>
+        <span class="delivery-check" aria-hidden="true"></span>
+      </label>
+    </div>
   </div>
 
   <div class="card">
     <div class="row"><span>Items subtotal</span><span>₹{{ subtotal }}</span></div>
+    <div class="row"><span>Delivery</span><span>{% if delivery_fee %}₹{{ delivery_fee }}{% else %}Free{% endif %}</span></div>
+    <p class="muted small" style="margin-top:8px;">Free delivery on orders of ₹{{ free_delivery_minimum }} or more. Minimum order: ₹{{ minimum_order_amount }}.</p>
     {% if wallet_balance > 0 %}
-    <div class="row" style="margin-top:10px;">
-      <label style="display:flex; align-items:center; gap:8px; margin:0;">
-        <input type="checkbox" name="use_wallet" style="width:auto; margin:0;">
-        Use wallet balance (₹{{ wallet_balance }} available, up to ₹{{ max_wallet_usable }} on this order)
-      </label>
-    </div>
+    <p class="muted small" style="margin-top:8px;">Wallet balance of ₹{{ max_wallet_usable }} will be applied automatically.</p>
     {% endif %}
   </div>
 
@@ -181,6 +192,14 @@
         document.getElementById('pin-hint').textContent = 'Tap "Use my current location" or tap the map to set your delivery pin — required before placing the order.';
       }
     }
+  });
+
+  document.querySelectorAll('.delivery-option input').forEach(function(input) {
+    input.addEventListener('change', function() {
+      document.querySelectorAll('.delivery-option').forEach(function(option) {
+        option.classList.toggle('selected', option.querySelector('input').checked);
+      });
+    });
   });
 
   // an address at all — falls back silently to manual tap if permission
