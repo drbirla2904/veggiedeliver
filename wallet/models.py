@@ -63,12 +63,12 @@ class WalletTransaction(models.Model):
 
 class ReferralSettings(models.Model):
     """
-    Singleton row admin edits to control the referral bonus rate —
-    avoids hardcoding the percentage in code.
+    Singleton row admin edits to control the referral bonus —
+    avoids hardcoding the amount in code.
     """
-    bonus_percent = models.DecimalField(
-        max_digits=4, decimal_places=1, default=Decimal("5.0"),
-        help_text="% of a referred customer's order value credited to the referrer, on every purchase."
+    bonus_amount = models.DecimalField(
+        max_digits=8, decimal_places=2, default=Decimal("50.00"),
+        help_text="Fixed rupee amount credited once when a referred customer's first order is delivered."
     )
     min_order_value_for_bonus = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal("99.00"))
     max_wallet_usage_percent = models.DecimalField(

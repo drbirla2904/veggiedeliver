@@ -19,7 +19,7 @@ class WalletAdmin(admin.ModelAdmin):
 
 @admin.register(ReferralSettings)
 class ReferralSettingsAdmin(admin.ModelAdmin):
-    list_display = ("bonus_percent", "min_order_value_for_bonus", "max_wallet_usage_percent")
+    list_display = ("bonus_amount", "min_order_value_for_bonus", "max_wallet_usage_percent")
 
     def has_add_permission(self, request):
         return not ReferralSettings.objects.exists()

@@ -14,7 +14,7 @@ end-to-end, OTP login API tested with curl).
 | `locations` | `Area` (a delivery zone — name, center point, radius) and `Address` (customer's pinned location, auto-assigned to an `Area` on save) |
 | `catalog` | `Category` → `Product` → `ProductVariant`, where a variant is the actual sellable unit — weight-based (e.g. "500 g") or piece-based (e.g. "2 pieces"), each with its own price |
 | `orders` | `Order`, `OrderItem`, and `DeliveryLocationPing` (live GPS trail for order tracking) |
-| `wallet` | `Wallet` + `WalletTransaction` (bonus-only, no user top-up), `ReferralSettings` (admin-editable bonus %) |
+| `wallet` | `Wallet` + `WalletTransaction` (bonus-only, no user top-up), `ReferralSettings` (admin-editable one-time referral bonus) |
 
 ## Key design decisions
 
@@ -50,7 +50,7 @@ moves, and every movement is logged in `WalletTransaction` for an audit
 trail. `wallet/signals.py` credits the referrer automatically whenever
 one of their referred customers' orders flips to `delivered` — on every
 purchase, not just the first, per your requirement — gated by
-`ReferralSettings.bonus_percent` and a minimum order value (both editable
+`ReferralSettings.bonus_amount` and a minimum order value (both editable
 in admin, no redeploy needed). A dedupe check stops double-crediting if
 the order is saved again after delivery.
 

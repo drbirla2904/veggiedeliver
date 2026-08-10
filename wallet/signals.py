@@ -16,9 +16,8 @@ def create_wallet_for_new_user(sender, instance, created, **kwargs):
 @receiver(post_save, sender=Order)
 def credit_referrer_on_delivery(sender, instance, created, **kwargs):
     """
-    Every time an order flips to 'delivered', if the customer was referred,
-    credit the referrer's wallet with a % of that order's value.
-    Runs on every purchase by the referred user, not just their first.
+    Credit a fixed referral bonus when a referred customer's first qualifying
+    order is delivered.
     """
     if created or instance.status != Order.Status.DELIVERED:
         return
@@ -32,16 +31,15 @@ def credit_referrer_on_delivery(sender, instance, created, **kwargs):
     if instance.items_total < settings_row.min_order_value_for_bonus:
         return
 
-    # Guard against double-crediting if this save fires again for the same order.
+    # Check all delivered referral rewards for this customer, not just this order.
     already_credited = referrer.wallet.transactions.filter(
-        reason="referral_bonus", related_order=instance
+        reason="referral_bonus", related_order__customer=customer
     ).exists()
     if already_credited:
         return
 
-    bonus = (instance.items_total * settings_row.bonus_percent / 100).quantize(instance.items_total)
     referrer.wallet.credit(
-        amount=bonus,
+        amount=settings_row.bonus_amount,
         reason="referral_bonus",
         related_order=instance,
     )

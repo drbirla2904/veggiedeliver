@@ -100,3 +100,53 @@ class OrderNotificationTests(TestCase):
             related_order=order,
             reason=WalletTransaction.Reason.DELIVERY_BONUS,
         ).exists())
+
+    def test_referral_bonus_is_paid_once_after_first_delivered_order(self):
+        from wallet.models import ReferralSettings, WalletTransaction
+
+        referrer = self.user
+        referred = get_user_model().objects.create_user(
+            username="referreduser",
+            password="password123",
+            mobile="9876543210",
+            referred_by=referrer,
+        )
+        referred_address = Address.objects.create(
+            customer=referred,
+            label="Home",
+            line1="456 Referred Street",
+            pincode="123456",
+            latitude=12.0,
+            longitude=77.0,
+        )
+        ReferralSettings.objects.create(
+            bonus_amount=Decimal("25.00"),
+            min_order_value_for_bonus=Decimal("99.00"),
+        )
+
+        first_order = Order.objects.create(
+            customer=referred,
+            address=referred_address,
+            area=self.area,
+            items_total=Decimal("125.00"),
+            grand_total=Decimal("125.00"),
+        )
+        first_order.status = Order.Status.DELIVERED
+        first_order.save(update_fields=["status"])
+
+        second_order = Order.objects.create(
+            customer=referred,
+            address=referred_address,
+            area=self.area,
+            items_total=Decimal("150.00"),
+            grand_total=Decimal("150.00"),
+        )
+        second_order.status = Order.Status.DELIVERED
+        second_order.save(update_fields=["status"])
+
+        referral_rewards = WalletTransaction.objects.filter(
+            wallet=referrer.wallet,
+            reason=WalletTransaction.Reason.REFERRAL_BONUS,
+        )
+        self.assertEqual(referral_rewards.count(), 1)
+        self.assertEqual(referral_rewards.first().amount, Decimal("25.00"))
