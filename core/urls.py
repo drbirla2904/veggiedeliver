@@ -18,8 +18,15 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from .views import about_us, contact_us, privacy_policy, terms
 
 urlpatterns = [
+    path('about-us/', about_us, name='about_us'),
+    path('privacy-policy/', privacy_policy, name='privacy_policy'),
+    path('policy/', privacy_policy, name='policy'),
+    path('terms/', terms, name='terms'),
+    path('contact-us/', contact_us, name='contact_us'),
+    path('contact/', contact_us, name='contact'),
     path('admin/', admin.site.urls),
     path('', include('accounts.urls')),
     path('', include('catalog.urls')),

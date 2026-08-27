@@ -1,16 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Live Map — {{ area.name }}{% endblock %}
-{% block appbar_actions %}<a href="{% url 'area_dashboard' %}">← Back</a>{% endblock %}
+{% block appbar_actions %}<a class="header-link profile-link" href="{% url 'area_dashboard' %}">← Back</a>{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<style>
-  #live-map{ height:100%; width:100%; }
-  .legend{ display:flex; gap:16px; font-size:12px; margin-bottom:10px; }
-  .legend span{ display:inline-flex; align-items:center; gap:5px; }
-  .dot{ width:10px; height:10px; border-radius:50%; display:inline-block; }
-</style>
 {% endblock %}
 
 {% block content %}
@@ -21,7 +15,7 @@
   <span><span class="dot" style="background:var(--clay);"></span> Active order</span>
 </div>
 <div class="map-box" style="height:400px;"><div id="live-map"></div></div>
-<p class="muted" id="map-hint">Refreshing every 10 seconds…</p>
+<p class="muted" id="map-hint" style="margin-top:10px;">Refreshing every 10 seconds…</p>
 
 <script>
   const map = L.map('live-map').setView([{{ area.center_lat }}, {{ area.center_lng }}], 13);
@@ -50,13 +44,13 @@
           orderMarkers[order.id].setLatLng(pos);
           orderMarkers[order.id].setPopupContent(popupText);
         } else {
-          orderMarkers[order.id] = L.marker(pos, {icon: colorIcon('#C9552F')}).addTo(map).bindPopup(popupText);
+          orderMarkers[order.id] = L.marker(pos, {icon: colorIcon('#C4432B')}).addTo(map).bindPopup(popupText);
         }
       });
 
       data.riders.forEach(rider => {
         const pos = [rider.latitude, rider.longitude];
-        const color = rider.on_duty ? '#4B6B3A' : '#8A9080';
+        const color = rider.on_duty ? '#1E4B3B' : '#A79A80';
         const popupText = rider.nearest_order_id
           ? `${rider.name} — nearest order #${rider.nearest_order_id} (${rider.nearest_order_distance_km} km)`
           : rider.name;
@@ -72,7 +66,7 @@
           if (nearestLines[rider.id]) {
             nearestLines[rider.id].setLatLngs(path);
           } else {
-            nearestLines[rider.id] = L.polyline(path, {color: '#3182ce', weight: 2, dashArray: '4 6'}).addTo(map);
+            nearestLines[rider.id] = L.polyline(path, {color: '#E4A339', weight: 2, dashArray: '4 6'}).addTo(map);
           }
         } else if (nearestLines[rider.id]) {
           map.removeLayer(nearestLines[rider.id]);

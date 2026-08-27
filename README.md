@@ -86,7 +86,7 @@ passed at signup, and returns a DRF auth token.
 
 Every role has real pages, not just Django admin:
 
-- **Customer** (mobile-first, matches the Taazgi demo look): browse by
+- **Customer** (responsive Paytmcart commerce experience): browse by
   category → product detail → cart → checkout (tap-to-pin map via
   Leaflet/OpenStreetMap, no API key needed) → order confirmation → order
   history → live order tracking (polls a JSON endpoint every 8s to move
@@ -115,6 +115,9 @@ python -m venv venv
 source venv/bin/activate          # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
+cp .env.example .env
+# Edit .env and set DJANGO_SECRET_KEY, database, SMS, and provider values as needed.
+
 python manage.py migrate
 python manage.py createsuperuser
 python manage.py runserver
@@ -124,6 +127,31 @@ Then visit `/admin/` to add your first `Area`, some `Category` /
 `Product` / `ProductVariant` entries, and to create area admins. Area
 admins log into the same `/admin/` and will only see their own area's
 data.
+
+Configuration is read from `.env`. SQLite and console OTP delivery work by
+default. For PostgreSQL set `DB_ENGINE=postgres` and fill in `DB_NAME`,
+`DB_USER`, `DB_PASSWORD`, `DB_HOST`, and `DB_PORT`. The checkout map uses
+Leaflet/OpenStreetMap without a key; `MAP_DEFAULT_LATITUDE`,
+`MAP_DEFAULT_LONGITUDE`, and `MAP_DEFAULT_ZOOM` control its initial view.
+`GOOGLE_MAPS_API_KEY` and `GOOGLE_CLIENT_ID` are included for optional Google
+Maps and Google sign-in integrations.
+
+## Ubuntu deployment
+
+The single [deploy.sh](deploy.sh) script installs PostgreSQL, Redis, Nginx,
+Gunicorn, and Celery, creates the systemd services, configures Nginx, runs
+migrations/static collection, and starts the application. Copy the repository
+to the server, then run:
+
+```bash
+chmod +x deploy.sh
+sudo bash deploy.sh example.com
+```
+
+On its first run it creates `.env` from `.env.example` and stops so you can
+fill in production secrets. Run it again after setting `DJANGO_SECRET_KEY`,
+`DB_PASSWORD`, `DJANGO_ALLOWED_HOSTS`, and `CSRF_TRUSTED_ORIGINS_EXTRA`.
+Point DNS at the server, then enable HTTPS with Certbot.
 
 Test the OTP flow:
 ```bash

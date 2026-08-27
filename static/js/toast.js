@@ -2,7 +2,13 @@
   function createToastElement(message, kind='default', actionsHtml=''){
     const toast = document.createElement('div');
     toast.className = `toast ${kind}`;
-    toast.innerHTML = `<div class="toast-body">${message}</div><div class="toast-actions">${actionsHtml}</div>`;
+    const body = document.createElement('div');
+    body.className = 'toast-body';
+    body.textContent = message;
+    const actions = document.createElement('div');
+    actions.className = 'toast-actions';
+    actions.innerHTML = actionsHtml;
+    toast.append(body, actions);
     return toast;
   }
 
@@ -15,7 +21,7 @@
   window.showToastAdded = function(cart_count){
     const actions = `<a href="/cart/" class="btn secondary" style="padding:6px 10px; font-size:13px;">View cart</a>` +
                     `<a href="/checkout/" class="btn clay" style="padding:6px 10px; font-size:13px; margin-left:8px;">Checkout</a>`;
-    const toast = createToastElement('Added to cart', 'added', actions);
+    const toast = createToastElement('Added to cart.', 'added', actions);
     showToastElement(toast, 6000);
     // update any visible cart badges
     const badge = document.querySelector('.cart-badge');
@@ -30,11 +36,13 @@
     showToastElement(toast, 7000);
   };
 
-  // Also convert any server-rendered .flash elements on load to transient toasts
   document.addEventListener('DOMContentLoaded', function() {
     const flashes = Array.from(document.querySelectorAll('.flash'));
     flashes.forEach(node => {
       const text = node.textContent.trim();
+      const kind = node.classList.contains('error') ? 'error' :
+        node.classList.contains('gift') ? 'gift' :
+        node.classList.contains('success') ? 'success' : 'default';
       if (text.includes('Added to cart')) {
         // try to read cart badge if server set it in the template
         const badge = document.querySelector('.cart-badge');
@@ -46,7 +54,8 @@
         node.remove();
         window.showToastGift(msg);
       } else {
-        setTimeout(() => node.style.display = 'none', 5000);
+        node.remove();
+        showToastElement(createToastElement(text, kind), kind === 'error' ? 7000 : 5000);
       }
     });
   });

@@ -1,4 +1,4 @@
-# Taazgi Style Guide (mini)
+# Paytmcart Style Guide (mini)
 
 ## Colors (CSS variables in `static/css/app.css`)
 - --soil: #2E3B24 (primary dark)

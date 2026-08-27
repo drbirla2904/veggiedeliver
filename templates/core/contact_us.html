@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Contact PaytmCart | Help and support{% endblock %}
+{% block content %}
+<article class="info-page contact-page">
+  <div class="info-hero"><span class="eyebrow">WE ARE HERE TO HELP</span><h1>Contact us</h1><p>Questions about an order, delivery or a product? Reach our support team and we will help you find the quickest answer.</p></div>
+  <div class="contact-grid">
+    <a class="contact-card" href="tel:+917000000000"><span class="contact-icon">☎</span><h2>Call support</h2><p>+91 70000 00000</p><small>Daily, 8:00 AM to 10:00 PM</small></a>
+    <a class="contact-card" href="mailto:support@paytmcart.in"><span class="contact-icon">✉</span><h2>Email us</h2><p>support@paytmcart.in</p><small>We usually reply within one business day</small></a>
+    <div class="contact-card"><span class="contact-icon">⌖</span><h2>Delivery area</h2><p>Bhopal, Madhya Pradesh</p><small>More neighbourhoods coming soon</small></div>
+  </div>
+  <div class="info-callout"><strong>Already placed an order?</strong><a class="btn" href="{% url 'order_history' %}">View orders</a></div>
+</article>
+{% endblock %}

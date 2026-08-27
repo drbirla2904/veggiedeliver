@@ -1,22 +1,22 @@
 {% extends "base.html" %}
 {% block title %}My Deliveries{% endblock %}
-{% block appbar_actions %}<a href="{% url 'logout' %}">Logout</a>{% endblock %}
+{% block appbar_actions %}<a class="header-link profile-link" href="{% url 'logout' %}">Logout</a>{% endblock %}
 {% block content %}
 
-<div class="card row" style="margin-bottom:16px;">
+<div class="card row">
   <div>
     <b>Duty status</b><br>
     <span class="muted">{% if user.is_on_duty %}You're visible for nearby order assignment.{% else %}Go on duty to receive nearby orders.{% endif %}</span>
   </div>
   <form method="post" action="{% url 'toggle_duty' %}">
     {% csrf_token %}
-    <button class="btn {% if user.is_on_duty %}clay{% endif %}" type="submit">
+    <button class="btn{% if user.is_on_duty %} clay{% endif %}" type="submit">
       {% if user.is_on_duty %}Go off duty{% else %}Go on duty{% endif %}
     </button>
   </form>
 </div>
 
-<h2 class="section-title">Your assigned orders</h2>
+<h2 class="section-title" style="margin-top:20px;">Your assigned orders</h2>
 
 {% if orders %}
 {% for order in orders %}
@@ -25,24 +25,24 @@
     <b>Order #{{ order.id }}</b>
     <span class="pill {{ order.status }}">{{ order.get_status_display }}</span>
   </div>
-  <div class="muted" style="margin:6px 0;">{{ order.address.line1 }}</div>
-  <div class="muted" style="margin-bottom:10px;">
+  <div class="muted" style="margin:8px 0 4px;">{{ order.address.line1 }}</div>
+  <div class="muted" style="margin-bottom:14px;">
     ₹{{ order.grand_total }} · {{ order.get_payment_method_display }}
     {% if order.distance_from_rider is not None %}· {{ order.distance_from_rider|floatformat:2 }} km{% endif %}
   </div>
 
   <div style="display:flex; gap:8px;">
     {% if order.status == "confirmed" %}
-    <form method="post" action="{% url 'update_order_status' order.id %}">
+    <form method="post" action="{% url 'update_order_status' order.id %}" style="flex:1;">
       {% csrf_token %}<input type="hidden" name="status" value="out_for_delivery">
-      <button class="btn" type="submit">Start delivery</button>
+      <button class="btn full" type="submit">Start delivery</button>
     </form>
     {% elif order.status == "out_for_delivery" %}
-    <form method="post" action="{% url 'update_order_status' order.id %}">
+    <form method="post" action="{% url 'update_order_status' order.id %}" style="flex:1;">
       {% csrf_token %}<input type="hidden" name="status" value="delivered">
-      <button class="btn clay" type="submit">Mark delivered</button>
+      <button class="btn clay full" type="submit">Mark delivered</button>
     </form>
-    <button class="btn secondary" onclick="shareLocation({{ order.id }})" type="button">Share live location</button>
+    <button class="btn secondary" style="flex:1;" onclick="shareLocation({{ order.id }})" type="button">📍 Share live location</button>
     {% endif %}
   </div>
 </div>

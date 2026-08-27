@@ -4,58 +4,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Farm-fresh fruits, vegetables and daily essentials delivered fast to your doorstep in Bhopal.">
 <title>{% block title %}Paytmcart - Fresh groceries delivered{% endblock %}</title>
 <link rel="stylesheet" href="{% static 'css/app.css' %}?v=5">
 <link rel="icon" href="/static/img/favicon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="{% static 'img/paytmcart.png' %}">
 <link rel="manifest" href="{% static 'site.webmanifest' %}">
-<meta name="theme-color" content="#1E4B3B">
+<meta name="theme-color" content="#00baf2">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 {% block extra_head %}{% endblock %}
 </head>
 <body>
-<div class="splash-screen" id="splash-screen" role="presentation" aria-hidden="true">
-  <img class="splash-img splash-img-mobile" src="{% static 'img/splash_mobile.png' %}" alt="">
-  <img class="splash-img splash-img-desktop" src="{% static 'img/splash_desktop.png' %}" alt="">
-</div>
-<script>
-  (function() {
-    var splash = document.getElementById('splash-screen');
-    if (!splash) return;
-
-    // Only show once per browser session — this is a full page reload
-    // (server-rendered) app, so without this the splash would replay
-    // on every single navigation.
-    if (sessionStorage.getItem('paytmcart_splash_shown')) {
-      splash.remove();
-      return;
-    }
-    sessionStorage.setItem('paytmcart_splash_shown', '1');
-
-    document.documentElement.style.overflow = 'hidden';
-
-    var MIN_DISPLAY_MS = 900;
-    var shownAt = Date.now();
-
-    function dismiss() {
-      var wait = Math.max(0, MIN_DISPLAY_MS - (Date.now() - shownAt));
-      setTimeout(function() {
-        splash.classList.add('is-hidden');
-        document.documentElement.style.overflow = '';
-        splash.addEventListener('transitionend', function() { splash.remove(); }, { once: true });
-      }, wait);
-    }
-
-    if (document.readyState === 'complete') {
-      dismiss();
-    } else {
-      window.addEventListener('load', dismiss);
-    }
-  })();
-</script>
 <div class="device">
   <a class="skip-link" href="#content">Skip to content</a>
 
@@ -120,19 +79,7 @@
   {% endif %}
   {% endblock %}
 
-  {% block footer %}
-  <footer class="site-footer">
-    <div class="footer-brand">Paytmcart</div>
-    <p class="footer-tag">Farm-fresh fruits, vegetables and daily essentials, picked this morning and delivered to your door.</p>
-    <div class="footer-links">
-      <a href="{% url 'home' %}">Shop</a>
-      <a href="{% url 'order_history' %}">Orders</a>
-      <a href="{% url 'contact_us' %}">Help &amp; support</a>
-      {% if user.is_authenticated %}<a href="{% url 'profile' %}">Account</a>{% else %}<a href="{% url 'login' %}">Login</a>{% endif %}
-    </div>
-    <div class="footer-bottom">© {% now "Y" %} Paytmcart. Fresh from the farm to your table.</div>
-  </footer>
-  {% endblock %}
+  {% block footer %}{% endblock %}
 </div>
 
 <script src="{% static 'js/csrf.js' %}"></script>

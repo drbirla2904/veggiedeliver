@@ -10,14 +10,24 @@ def _format_order_status_message(order, status):
         )
 
     if status == order.Status.CONFIRMED:
+        delivery_member = order.delivery_member
+        assigned_to = (
+            delivery_member.get_full_name() or delivery_member.mobile
+            if delivery_member else "our delivery team"
+        )
         return (
-            f"Order #{order.id} is confirmed and assigned to {order.delivery_member.get_full_name() or order.delivery_member.mobile}. "
+            f"Order #{order.id} is confirmed and assigned to {assigned_to}. "
             "It will be delivered soon."
         )
 
     if status == order.Status.OUT_FOR_DELIVERY:
+        delivery_member = order.delivery_member
+        assigned_to = (
+            delivery_member.get_full_name() or delivery_member.mobile
+            if delivery_member else "our delivery team"
+        )
         return (
-            f"Order #{order.id} is out for delivery with {order.delivery_member.get_full_name() or order.delivery_member.mobile}. "
+            f"Order #{order.id} is out for delivery with {assigned_to}. "
             "You can track it from your order details page."
         )
 

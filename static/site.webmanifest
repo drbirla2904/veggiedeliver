@@ -1,10 +1,10 @@
 {
-  "name": "Taazgi - Fresh Vegetables & Fruits",
-  "short_name": "Taazgi",
+  "name": "Paytmcart - Fresh groceries delivered",
+  "short_name": "Paytmcart",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F7F3E9",
-  "theme_color": "#2E3B24",
+  "background_color": "#f5f7fa",
+  "theme_color": "#00baf2",
   "description": "Order fresh vegetables and fruits for delivery.",
   "icons": [
     {

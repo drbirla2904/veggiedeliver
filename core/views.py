@@ -1,8 +1,25 @@
 import logging
 from django.http import HttpResponseForbidden
 from django.template import loader
+from django.shortcuts import render
 
 logger = logging.getLogger(__name__)
+
+
+def about_us(request):
+    return render(request, "core/about_us.html")
+
+
+def privacy_policy(request):
+    return render(request, "core/privacy_policy.html")
+
+
+def terms(request):
+    return render(request, "core/terms.html")
+
+
+def contact_us(request):
+    return render(request, "core/contact_us.html")
 
 def csrf_failure(request, reason=""):
     """Log CSRF failures for easier debugging in dev environments.

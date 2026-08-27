@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Order, OrderItem, DeliveryLocationPing
+from .models import GiftItem, Order, OrderItem, DeliveryLocationPing
 from accounts.models import User
 
 
@@ -36,3 +36,10 @@ class OrderAdmin(admin.ModelAdmin):
 
 
 admin.site.register(DeliveryLocationPing)
+
+
+@admin.register(GiftItem)
+class GiftItemAdmin(admin.ModelAdmin):
+    list_display = ("name", "image", "minimum_order_value", "stock_quantity", "is_active")
+    list_filter = ("is_active",)
+    search_fields = ("name", "description")

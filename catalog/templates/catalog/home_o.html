@@ -5,14 +5,14 @@
 <section class="store-hero">
   <div class="store-hero-copy">
     <span class="eyebrow">🌿 FRESHNESS YOU CAN TRUST</span>
-    <h1>Fresh Veggie's,<br><strong>Delivered Fast!</strong></h1>
-    <p>Farm fresh fruits and vegetables at your doorstep.</p>
+    <h1>Fresh Groceries,<br><strong>Delivered Fast!</strong></h1>
+    <p>Farm fresh fruits, vegetables, groceries and daily essentials at your doorstep.</p>
     <div class="hero-actions">
       <a href="#products" class="btn">Shop Now &nbsp; →</a>
     </div>
   </div>
   <div class="store-hero-image" aria-label="Fresh grocery delivery banner"></div>
-  <div class="hero-offer"><small>Every Day</small><b>Gift Items</b><span>On orders above ₹100</span><strong>Next Day Delivery</strong></div>
+  <div class="hero-offer"><small>TODAY'S SPECIAL</small><b>10% OFF</b><span>On orders above ₹699</span><strong>USE CODE: FRESH10</strong></div>
 </section>
 
 <section class="benefit-strip" aria-label="Shopping benefits">
@@ -51,7 +51,7 @@
       <div class="sub">{{ variant.label }}</div>
     </a>
     <div class="foot">
-      <div class="price">{{ variant.price }}</div>
+      <div class="price">₹{{ variant.price }}</div>
       <form method="post" action="{% url 'add_to_cart' variant.id %}" class="ajax-add" aria-label="Add {{ product.name }} to cart">
         {% csrf_token %}
         <input type="hidden" name="quantity" value="1">

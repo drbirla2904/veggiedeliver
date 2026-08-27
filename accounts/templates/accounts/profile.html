@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Profile — Taazgi{% endblock %}
+{% block title %}Profile — Paytmcart{% endblock %}
 {% block content %}
-<div class="auth-card">
+<div class="auth-card profile-card">
   <h2 class="section-title">Profile</h2>
-  <div class="card">
+  <div class="card profile-details">
     <div class="row"><span class="muted">Name</span><b>{{ user.get_full_name|default:"—" }}</b></div>
-    <div class="row" style="margin-top:8px;"><span class="muted">Mobile number</span><b>+91 {{ user.mobile }}</b></div>
-    <div class="row" style="margin-top:8px;"><span class="muted">Referral code</span><b>{{ user.referral_code }}</b></div>
+    <div class="row"><span class="muted">Mobile number</span><b>+91 {{ user.mobile }}</b></div>
+    <div class="row"><span class="muted">Referral code</span><b>{{ user.referral_code }}</b></div>
   </div>
   <button
     class="btn secondary full"
@@ -17,18 +17,29 @@
     Share referral code
   </button>
   <p class="muted" id="share-status" role="status" aria-live="polite"></p>
+  <a class="btn clay full" href="{% url 'logout' %}">Logout</a>
+  <section class="account-information" aria-labelledby="account-information-title">
+    <h3 id="account-information-title">PaytmCart information</h3>
+    <p>Learn more about shopping and delivery with us.</p>
+    <nav class="account-information-links" aria-label="PaytmCart information">
+      <a href="{% url 'about_us' %}">About us</a>
+      <a href="{% url 'privacy_policy' %}">Privacy policy</a>
+      <a href="{% url 'terms' %}">Terms</a>
+      <a href="{% url 'contact_us' %}">Contact us</a>
+    </nav>
+  </section>
 </div>
 
 <script>
   const shareButton = document.getElementById('share-referral');
   const shareStatus = document.getElementById('share-status');
   const shareUrl = shareButton.dataset.shareUrl;
-  const shareText = `Join Taazgi with my referral code: {{ user.referral_code|escapejs }}`;
+  const shareText = `Join Paytmcart with my referral code: {{ user.referral_code|escapejs }}`;
 
   shareButton.addEventListener('click', async () => {
     try {
       if (navigator.share) {
-        await navigator.share({ title: 'Join Taazgi', text: shareText, url: shareUrl });
+        await navigator.share({ title: 'Join Paytmcart', text: shareText, url: shareUrl });
         shareStatus.textContent = 'Referral link shared.';
       } else {
         await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);

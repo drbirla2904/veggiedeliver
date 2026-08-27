@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}About PaytmCart | Fresh groceries delivered{% endblock %}
+{% block content %}
+<article class="info-page">
+  <div class="info-hero">
+    <span class="eyebrow">ABOUT PAYTMCART</span>
+    <h1>Good food should start close to home.</h1>
+    <p>PaytmCart makes it easy to order fresh fruits, vegetables, groceries and everyday essentials from the comfort of your home.</p>
+  </div>
+  <div class="info-grid">
+    <section class="info-section"><span class="info-number">01</span><h2>Freshness first</h2><p>We choose quality produce and handle every order with care, so your shopping arrives ready for the kitchen.</p></section>
+    <section class="info-section"><span class="info-number">02</span><h2>Built for your neighbourhood</h2><p>Our area-based delivery network helps us serve local homes reliably while supporting the people who keep each delivery moving.</p></section>
+    <section class="info-section"><span class="info-number">03</span><h2>Simple, transparent shopping</h2><p>Clear prices, convenient delivery options and helpful support make your weekly grocery run feel lighter.</p></section>
+  </div>
+  <div class="info-callout"><strong>From our shelves to your doorstep.</strong><a class="btn" href="{% url 'home' %}">Start shopping</a></div>
+</article>
+{% endblock %}

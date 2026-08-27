@@ -28,7 +28,7 @@ def generate_and_send_otp(mobile):
 
     code = f"{random.randint(100000, 999999)}"
     OTP.objects.create(mobile=mobile, code=code)
-    message = f"Your Taazgi OTP is {code}. Valid for {OTP_VALIDITY_MINUTES} minutes. Do not share this code."
+    message = f"Your Paytmcart OTP is {code}. Valid for {OTP_VALIDITY_MINUTES} minutes. Do not share this code."
     send_otp_sms_task.delay(mobile, message)
     return code
 

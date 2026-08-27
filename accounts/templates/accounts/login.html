@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Log in — Taazgi{% endblock %}
+{% block title %}Log in — Paytmcart{% endblock %}
 {% block appbar_actions %}{% endblock %}
 {% block content %}
-<div>
+<div class="auth-card auth-page">
   <h1 class="section-title">
     {% if step == "otp" %}Enter the OTP{% else %}Fresh veggies, one login away{% endif %}
   </h1>
@@ -21,27 +21,27 @@
     <input type="text" name="code" id="code" maxlength="6" inputmode="numeric" placeholder="6-digit code" autofocus required>
 
     {% if show_name %}
-    <label for="first_name">Your name <span class="muted">(first time only)</span></label>
+    <label for="first_name">Your name <span class="muted" style="text-transform:none; font-weight:400; letter-spacing:0;">(first time only)</span></label>
     <input type="text" name="first_name" id="first_name" placeholder="e.g. Asha">
     {% endif %}
 
-    <button class="btn full" type="submit" aria-label="Verify and continue">Verify &amp; continue</button>
+    <button class="btn full" type="submit" style="margin-top:20px;" aria-label="Verify and continue">Verify &amp; continue</button>
   </form>
-  <p class="muted" style="margin-top:14px;">
+  <div class="auth-links">
     <a href="{% url 'login' %}">← Use a different number</a>
-    &nbsp;·&nbsp;
-    <form method="post" action="{% url 'login' %}" style="display:inline;" aria-label="Resend OTP form">
+    <span aria-hidden="true">·</span>
+    <form method="post" action="{% url 'login' %}" aria-label="Resend OTP form">
       {% csrf_token %}
       <input type="hidden" name="mobile" value="{{ mobile }}">
-      <button type="submit" style="background:none; border:none; padding:0; color:var(--leaf); font-weight:700; cursor:pointer;" aria-label="Resend OTP">Resend OTP</button>
+      <button type="submit" style="background:none; border:none; padding:0; color:var(--leaf); font-weight:700; cursor:pointer; font-size:13px;" aria-label="Resend OTP">Resend OTP</button>
     </form>
-  </p>
+  </div>
   {% else %}
   <form method="post" class="auth-form">
     {% csrf_token %}
     <label for="mobile">Mobile number</label>
     <input type="tel" name="mobile" id="mobile" maxlength="10" inputmode="numeric" placeholder="10-digit mobile number" autofocus required>
-    <button class="btn full" type="submit" aria-label="Send OTP">Send OTP</button>
+    <button class="btn full" type="submit" style="margin-top:20px;" aria-label="Send OTP">Send OTP</button>
   </form>
   {% endif %}
 </div>

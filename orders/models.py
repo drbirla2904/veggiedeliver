@@ -4,6 +4,22 @@ from django.db import models
 from django.conf import settings
 
 
+class GiftItem(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.CharField(max_length=255, blank=True)
+    image = models.ImageField(upload_to="gifts/", blank=True, null=True)
+    minimum_order_value = models.DecimalField(max_digits=9, decimal_places=2, default=0)
+    stock_quantity = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
 class Order(models.Model):
     class Status(models.TextChoices):
         PLACED = "placed", "Placed"
@@ -49,6 +65,10 @@ class Order(models.Model):
     delivery_fee = models.DecimalField(max_digits=6, decimal_places=2, default=0)
     wallet_amount_used = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     grand_total = models.DecimalField(max_digits=9, decimal_places=2, default=0)
+    gift_item = models.ForeignKey(
+        GiftItem, null=True, blank=True, on_delete=models.SET_NULL, related_name="won_orders"
+    )
+    gift_spun_at = models.DateTimeField(null=True, blank=True)
 
     placed_at = models.DateTimeField(auto_now_add=True)
     delivered_at = models.DateTimeField(null=True, blank=True)

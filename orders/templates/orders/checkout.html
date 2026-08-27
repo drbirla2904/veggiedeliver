@@ -1,10 +1,15 @@
 {% extends "base.html" %}
-{% block title %}Checkout — Taazgi{% endblock %}
+{% block title %}Checkout — Paytmcart{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<style>#pin-map{ height:100%; width:100%; }</style>
+<style>
+  #pin-map{ height:100%; width:100%; }
+  .location-status{ padding:10px 12px; border-radius:var(--radius-sm); margin:-2px 0 14px; font-size:12px; font-weight:700; }
+  .location-status.good{ background:#DCEBD3; color:#2F5B27; }
+  .location-status.caution{ background:#FFF1D6; color:#8A5A00; }
+</style>
 {% endblock %}
 
 {% block fixed_checkout_bar %}{% endblock %}
@@ -14,24 +19,25 @@
 
 <div class="auth-card">
 {% if addresses %}
-<h3 class="muted small" style="margin-bottom:8px;">Use a saved address</h3>
+<h3 class="muted small" style="margin-bottom:10px;">Use a saved address</h3>
 {% for addr in addresses %}
 <label class="card label-card">
-  <input type="radio" name="saved_address_choice" value="{{ addr.id }}" onclick="selectSaved({{ addr.id }})">
+  <input type="radio" name="saved_address_choice" value="{{ addr.id }}" onclick="selectSaved({{ addr.id }}, {{ addr.latitude }}, {{ addr.longitude }})">
   <span><b>{{ addr.label }}</b><br><span class="muted">{{ addr.line1 }}{% if addr.landmark %}, {{ addr.landmark }}{% endif %}</span></span>
 </label>
 {% endfor %}
-<p class="muted" style="margin:10px 0;">— or use your current location —</p>
+<p class="muted" style="margin:14px 0;">— or use your current location —</p>
 {% endif %}
 
-<button type="button" class="btn full" id="use-location-btn" style="margin-bottom:12px;" onclick="useMyLocation()">
-  📍 Use my current location
+<button type="button" class="btn secondary full" id="use-location-btn" style="margin-bottom:14px;" onclick="useMyLocation()">
+  📍 Find my location
 </button>
 
 <div class="map-box"><div id="pin-map"></div></div>
 <p class="muted" id="pin-hint" style="margin-top:-6px; margin-bottom:14px;">
-  Tap "Use my current location" or tap the map directly to set your delivery pin.
+  Move the pin to your entrance, or tap the map to place it exactly.
 </p>
+<div class="location-status" id="location-status" aria-live="polite" style="display:none;"></div>
 
 <form method="post" id="checkout-form">
   {% csrf_token %}
@@ -42,20 +48,20 @@
   <div id="new-address-fields">
     <label>Label</label>
     <select name="label"><option>Home</option><option>Work</option><option>Other</option></select>
-    <label>Address line <span class="muted">(auto-filled — edit if needed)</span></label>
+    <label>Address line <span class="muted" style="text-transform:none; font-weight:400; letter-spacing:0;">(auto-filled — edit if needed)</span></label>
     <input type="text" name="line1" id="line1_field" placeholder="House / street / area">
-    <div id="no-pin-warning" class="flash error" style="display:none;">⚠️ Please set your delivery pin above before placing the order.</div>
-    <label>Landmark <span class="muted">(optional)</span></label>
+    <div id="no-pin-warning" class="flash error" style="display:none; margin-top:12px;">⚠️ Please set your delivery pin above before placing the order.</div>
+    <label>Landmark <span class="muted" style="text-transform:none; font-weight:400; letter-spacing:0;">(optional)</span></label>
     <input type="text" name="landmark" id="landmark_field">
-    <label>Pincode</label>
+    <label>Pincode <span class="muted" style="text-transform:none; font-weight:400; letter-spacing:0;">(map suggestion — please verify)</span></label>
     <input type="text" name="pincode" id="pincode_field" maxlength="6">
   </div>
 
-  <div class="card delivery-card">
+  <div class="card delivery-card" style="margin-top:20px;">
     <div class="delivery-heading">
       <div>
         <div class="delivery-title">Delivery time</div>
-        <div class="muted small">Choose what works best for you</div>
+        <div class="muted" style="margin-top:2px;">Choose what works best for you</div>
       </div>
       <span class="delivery-icon" aria-hidden="true">⏱</span>
     </div>
@@ -90,34 +96,75 @@
   <div class="card">
     <div class="row"><span>Items subtotal</span><span>₹{{ subtotal }}</span></div>
     <div class="row"><span>Delivery</span><span>{% if delivery_fee %}₹{{ delivery_fee }}{% else %}Free{% endif %}</span></div>
-    <p class="muted small" style="margin-top:8px;">Free delivery on orders of ₹{{ free_delivery_minimum }} or more. Minimum order: ₹{{ minimum_order_amount }}.</p>
+    <p class="muted" style="margin-top:10px; font-size:12px;">Free delivery on orders of ₹{{ free_delivery_minimum }} or more. Minimum order: ₹{{ minimum_order_amount }}.</p>
     {% if wallet_balance > 0 %}
-    <p class="muted small" style="margin-top:8px;">Wallet balance of ₹{{ max_wallet_usable }} will be applied automatically.</p>
+    <p class="muted" style="margin-top:8px; font-size:12px;">Wallet balance of ₹{{ max_wallet_usable }} will be applied automatically.</p>
     {% endif %}
   </div>
 
-  <button class="btn full clay" type="submit">Place order — Cash on Delivery</button>
+  <button class="btn full clay" type="submit" style="margin-top:6px;">Place order — Cash on Delivery</button>
 </form>
 </div>
 
 <script>
-  const map = L.map('pin-map').setView([23.2599, 77.4126], 12); // Bhopal default center
+  const map = L.map('pin-map').setView(
+    [{{ map_default_latitude }}, {{ map_default_longitude }}],
+    {{ map_default_zoom }}
+  );
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
     attribution: '&copy; OpenStreetMap contributors &copy; CARTO', subdomains: 'abcd', maxZoom: 20
   }).addTo(map);
 
   let marker = null;
+  let accuracyCircle = null;
+  let geocodeRequest = 0;
 
-  function dropPin(lat, lng) {
+  function updateLocationStatus(accuracy) {
+    const status = document.getElementById('location-status');
+    if (!accuracy) {
+      status.style.display = 'none';
+      return;
+    }
+    const roundedAccuracy = Math.round(accuracy);
+    status.style.display = 'block';
+    if (roundedAccuracy <= 50) {
+      status.className = 'location-status good';
+      status.textContent = `Location accuracy: about ${roundedAccuracy} m. You can fine-tune the pin if needed.`;
+    } else {
+      status.className = 'location-status caution';
+      status.textContent = `Location accuracy is about ${roundedAccuracy} m. Please drag the pin to your exact entrance.`;
+    }
+  }
+
+  function dropPin(lat, lng, accuracy) {
     document.getElementById('address_id_field').value = '';
     document.querySelectorAll('input[name=saved_address_choice]').forEach(r => r.checked = false);
     document.getElementById('new-address-fields').style.display = 'block';
 
     const latlng = {lat, lng};
-    if (marker) { marker.setLatLng(latlng); } else { marker = L.marker(latlng).addTo(map); }
+    if (marker) {
+      marker.setLatLng(latlng);
+      marker.dragging.enable();
+    } else {
+      marker = L.marker(latlng, {draggable: true}).addTo(map);
+      marker.on('dragend', function() {
+        const position = marker.getLatLng();
+        dropPin(position.lat, position.lng);
+        reverseGeocode(position.lat, position.lng);
+      });
+    }
+    if (accuracy) {
+      if (accuracyCircle) { accuracyCircle.setLatLng(latlng).setRadius(accuracy); }
+      else { accuracyCircle = L.circle(latlng, {radius: accuracy, color: '#1E4B3B', fillOpacity: 0.12}).addTo(map); }
+    } else if (accuracyCircle) {
+      accuracyCircle.setLatLng(latlng);
+    }
     document.getElementById('lat_field').value = lat;
     document.getElementById('lng_field').value = lng;
     document.getElementById('no-pin-warning').style.display = 'none';
+    marker.bindPopup('<strong>Your delivery location</strong><br>Drag the pin to your exact entrance.');
+    marker.openPopup();
+    updateLocationStatus(accuracy);
   }
 
   // Reverse-geocode via OpenStreetMap's free Nominatim endpoint — fine for
@@ -125,16 +172,30 @@
   // keyed geocoder (Google Geocoding API, OpenCage, etc.) to respect
   // Nominatim's usage policy and get more reliable results.
   function reverseGeocode(lat, lng) {
-    document.getElementById('pin-hint').textContent = 'Looking up your address…';
+    const requestId = ++geocodeRequest;
+    document.getElementById('pin-hint').textContent = 'Looking up the address for this pin…';
+    document.getElementById('line1_field').value = '';
+    document.getElementById('landmark_field').value = '';
+    document.getElementById('pincode_field').value = '';
     fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`)
       .then(r => r.json())
       .then(data => {
+        if (requestId !== geocodeRequest) return;
         if (data && data.address) {
           const a = data.address;
-          const line = [a.house_number, a.road || a.suburb, a.neighbourhood].filter(Boolean).join(', ');
-          document.getElementById('line1_field').value = line || data.display_name || '';
+          const street = [a.house_number, a.road].filter(Boolean).join(' ');
+          const locality = [a.neighbourhood, a.quarter, a.suburb, a.city_district]
+            .filter(Boolean)
+            .filter((value, index, values) => values.indexOf(value) === index)
+            .join(', ');
+          document.getElementById('line1_field').value = street;
+          document.getElementById('landmark_field').value = locality;
           document.getElementById('pincode_field').value = a.postcode || '';
-          document.getElementById('pin-hint').textContent = 'Location detected — check the address below and adjust if needed.';
+          marker.bindPopup(`<strong>Your delivery location</strong><br>${data.display_name || 'Pin selected'}`);
+          marker.openPopup();
+          document.getElementById('pin-hint').textContent = street
+            ? 'Street found — check the address below and add your house or building details.'
+            : 'The pin is set, but no street address was found. Please enter the address manually.';
         } else {
           document.getElementById('pin-hint').textContent = 'Pin set. Please fill in the address manually.';
         }
@@ -149,18 +210,26 @@
       document.getElementById('pin-hint').textContent = "Location isn't supported on this device — please tap the map instead.";
       return;
     }
-    document.getElementById('pin-hint').textContent = 'Getting your location…';
+    const button = document.getElementById('use-location-btn');
+    button.disabled = true;
+    button.textContent = 'Finding your location…';
+    document.getElementById('pin-hint').textContent = 'Finding your location. This can take a few seconds…';
     navigator.geolocation.getCurrentPosition(
       function(pos) {
         const latitude = pos.coords.latitude, longitude = pos.coords.longitude;
-        map.setView([latitude, longitude], 16);
-        dropPin(latitude, longitude);
+        const accuracy = pos.coords.accuracy;
+        map.setView([latitude, longitude], accuracy > 100 ? 15 : 17);
+        dropPin(latitude, longitude, accuracy);
         reverseGeocode(latitude, longitude);
+        button.disabled = false;
+        button.textContent = '📍 Find my location again';
       },
       function(err) {
         document.getElementById('pin-hint').textContent = "Couldn't get your location — please tap the map to set your pin.";
+        button.disabled = false;
+        button.textContent = '📍 Find my location';
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   }
 
@@ -169,15 +238,20 @@
     reverseGeocode(e.latlng.lat, e.latlng.lng);
   });
 
-  function selectSaved(id) {
+  function selectSaved(id, lat, lng) {
     document.getElementById('address_id_field').value = id;
     document.getElementById('lat_field').value = '';
     document.getElementById('lng_field').value = '';
     document.getElementById('new-address-fields').style.display = 'none';
     document.getElementById('no-pin-warning').style.display = 'none';
+    map.setView([lat, lng], 17);
+    if (marker) { marker.setLatLng([lat, lng]); }
+    else { marker = L.marker([lat, lng], {draggable: false}).addTo(map); }
+    if (accuracyCircle) { accuracyCircle.remove(); accuracyCircle = null; }
+    document.getElementById('location-status').style.display = 'none';
+    document.getElementById('pin-hint').textContent = 'Saved address selected. Choose a new pin above if the delivery point has changed.';
   }
 
-  // Try to auto-detect on page load so most customers never need to type
   document.getElementById('checkout-form').addEventListener('submit', function(e) {
     const hasSavedAddress = document.getElementById('address_id_field').value;
     const hasNewPin = document.getElementById('lat_field').value && document.getElementById('lng_field').value;
@@ -202,16 +276,9 @@
     });
   });
 
-  // an address at all — falls back silently to manual tap if permission
-  // is denied or unavailable.
   window.addEventListener('load', function() {
-    const addressCount = {{ addresses|length|default:0 }};
-    if (navigator.geolocation && addressCount === 0) {
+    if (navigator.geolocation) {
       useMyLocation();
-    } else if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(function(pos) {
-        map.setView([pos.coords.latitude, pos.coords.longitude], 14);
-      }, function() {}, { timeout: 5000 });
     }
   });
 </script>

@@ -7,7 +7,8 @@ from django.contrib.auth import get_user_model
 
 from catalog.models import Category, Product, ProductVariant
 from locations.models import Area, Address
-from .models import Order
+from .models import GiftItem, Order
+from .notifications import _format_order_status_message
 
 
 class OrderNotificationTests(TestCase):
@@ -16,6 +17,7 @@ class OrderNotificationTests(TestCase):
             username="testuser",
             password="password123",
             mobile="9123456789",
+            mobile_verified=True,
         )
         self.area = Area.objects.create(
             name="Test Area",
@@ -72,6 +74,25 @@ class OrderNotificationTests(TestCase):
         mock_notify_customer.assert_called_once_with(order, Order.Status.PLACED)
         mock_notify_area_admin.assert_called_once_with(order, Order.Status.PLACED)
 
+    def test_checkout_requires_verified_mobile_account(self):
+        self.user.mobile = ""
+        self.user.mobile_verified = False
+        self.user.save(update_fields=["mobile", "mobile_verified"])
+        self.client.force_login(self.user)
+
+        session = self.client.session
+        session["cart"] = {str(self.variant.id): 1}
+        session.save()
+
+        response = self.client.post(reverse("checkout"), {
+            "address_id": self.address.id,
+            "delivery_speed": Order.DeliverySpeed.INSTANT,
+        })
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], reverse("login"))
+        self.assertFalse(Order.objects.exists())
+
     def test_delivery_bonus_is_credited_on_delivery(self):
         from wallet.models import WalletTransaction
 
@@ -117,6 +138,97 @@ class OrderNotificationTests(TestCase):
 
         self.assertRedirects(response, reverse("cart"))
         self.assertFalse(Order.objects.exists())
+
+    def test_customer_can_cancel_before_order_is_out_for_delivery(self):
+        self.client.force_login(self.user)
+        order = Order.objects.create(
+            customer=self.user,
+            address=self.address,
+            area=self.area,
+            status=Order.Status.CONFIRMED,
+            wallet_amount_used=Decimal("20.00"),
+        )
+        starting_balance = self.user.wallet.balance
+
+        response = self.client.post(reverse("cancel_order", args=[order.id]))
+
+        self.assertRedirects(response, reverse("order_detail", args=[order.id]))
+        order.refresh_from_db()
+        self.user.wallet.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.CANCELLED)
+        self.assertEqual(self.user.wallet.balance, starting_balance + Decimal("20.00"))
+
+    def test_confirmed_notification_handles_unassigned_order(self):
+        order = Order.objects.create(
+            customer=self.user,
+            address=self.address,
+            area=self.area,
+            status=Order.Status.CONFIRMED,
+        )
+
+        message = _format_order_status_message(order, Order.Status.CONFIRMED)
+
+        self.assertIn("our delivery team", message)
+
+    def test_customer_cannot_cancel_order_out_for_delivery(self):
+        self.client.force_login(self.user)
+        order = Order.objects.create(
+            customer=self.user,
+            address=self.address,
+            area=self.area,
+            status=Order.Status.OUT_FOR_DELIVERY,
+        )
+
+        response = self.client.post(reverse("cancel_order", args=[order.id]))
+
+        self.assertRedirects(response, reverse("order_detail", args=[order.id]))
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.OUT_FOR_DELIVERY)
+
+    def test_eligible_delivered_customer_can_spin_once_for_gift(self):
+        self.client.force_login(self.user)
+        GiftItem.objects.all().delete()
+        order = Order.objects.create(
+            customer=self.user,
+            address=self.address,
+            area=self.area,
+            status=Order.Status.DELIVERED,
+            grand_total=Decimal("125.00"),
+        )
+        gift = GiftItem.objects.create(
+            name="Tea cup",
+            description="A cheerful cup for your next chai break.",
+            minimum_order_value=Decimal("100.00"),
+            stock_quantity=1,
+        )
+
+        response = self.client.post(reverse("spin_gift", args=[order.id]))
+
+        self.assertRedirects(response, reverse("order_detail", args=[order.id]))
+        order.refresh_from_db()
+        gift.refresh_from_db()
+        self.assertEqual(order.gift_item, gift)
+        self.assertIsNotNone(order.gift_spun_at)
+        self.assertEqual(gift.stock_quantity, 0)
+
+        self.client.post(reverse("spin_gift", args=[order.id]))
+        self.assertEqual(GiftItem.objects.get(pk=gift.pk).stock_quantity, 0)
+
+    def test_gift_spin_requires_delivered_eligible_order(self):
+        self.client.force_login(self.user)
+        order = Order.objects.create(
+            customer=self.user,
+            address=self.address,
+            area=self.area,
+            status=Order.Status.CONFIRMED,
+            grand_total=Decimal("50.00"),
+        )
+        GiftItem.objects.create(name="Plate", minimum_order_value=Decimal("100.00"), stock_quantity=2)
+
+        self.client.post(reverse("spin_gift", args=[order.id]))
+
+        order.refresh_from_db()
+        self.assertIsNone(order.gift_item_id)
 
     def test_free_delivery_threshold_is_applied(self):
         from wallet.models import ReferralSettings

@@ -1,11 +1,14 @@
 from decimal import Decimal
 
 from django.shortcuts import render, redirect, get_object_or_404
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
 from django.db import transaction
+from django.db.models import Exists, OuterRef
+from django.utils import timezone
 
 from catalog.models import ProductVariant
 from locations.models import Address
@@ -14,7 +17,7 @@ from accounts.decorators import role_required
 from accounts.models import User
 from wallet.models import ReferralSettings, WalletTransaction
 from .cart import Cart
-from .models import Order, OrderItem, DeliveryLocationPing
+from .models import GiftItem, Order, OrderItem, DeliveryLocationPing
 from .notifications import notify_customer, notify_area_admin
 from . import geo_cache
 
@@ -44,16 +47,44 @@ def add_to_cart(request, variant_id):
     return redirect(request.POST.get("next") or "home")
 
 
+def _is_ajax(request):
+    return request.headers.get("x-requested-with") == "XMLHttpRequest"
+
+
 @require_POST
 def update_cart_item(request, variant_id):
     qty = int(request.POST.get("quantity", 0))
     Cart(request).set_quantity(variant_id, qty)
+    if _is_ajax(request):
+        cart = Cart(request)
+        line_item = next(
+            (item for item in cart.line_items() if item[0].id == variant_id),
+            None,
+        )
+        return JsonResponse({
+            "success": True,
+            "cart_count": cart.count(),
+            "subtotal": str(cart.subtotal()),
+            "variant_id": variant_id,
+            "quantity": qty,
+            "line_total": str(line_item[2]) if line_item else None,
+        })
     return redirect("cart")
 
 
 @require_POST
 def remove_from_cart(request, variant_id):
     Cart(request).remove(variant_id)
+    if _is_ajax(request):
+        cart = Cart(request)
+        return JsonResponse({
+            "success": True,
+            "cart_count": cart.count(),
+            "subtotal": str(cart.subtotal()),
+            "variant_id": variant_id,
+            "quantity": 0,
+            "line_total": None,
+        })
     return redirect("cart")
 
 
@@ -72,6 +103,10 @@ def cart_page(request):
 
 @login_required
 def checkout(request):
+    if not request.user.mobile or not request.user.mobile_verified:
+        messages.error(request, "Please log in with your verified mobile number before placing an order.")
+        return redirect("login")
+
     cart = Cart(request)
     if not cart.line_items():
         messages.error(request, "Your cart is empty.")
@@ -151,11 +186,11 @@ def checkout(request):
             notify_area_admin(order, Order.Status.PLACED)
 
         cart.clear()
-        messages.success(request, "Order placed!")
+        messages.success(request, "Order placed successfully.")
         if delivery_speed == Order.DeliverySpeed.NEXT_DAY_MORNING:
             messages.success(
                 request,
-                "🎁 Your gift will be given at the time of delivery.",
+                "🎁 Gift eligibility confirmed. Your gift will be given at delivery.",
                 extra_tags="gift",
             )
         return redirect("order_detail", order_id=order.id)
@@ -169,6 +204,11 @@ def checkout(request):
         "minimum_order_amount": settings_row.minimum_order_amount,
         "free_delivery_minimum": settings_row.free_delivery_minimum,
         "cart_count": cart.count(),
+        "map_default_latitude": settings.MAP_DEFAULT_LATITUDE,
+        "map_default_longitude": settings.MAP_DEFAULT_LONGITUDE,
+        "map_default_zoom": settings.MAP_DEFAULT_ZOOM,
+        "google_maps_api_key": settings.GOOGLE_MAPS_API_KEY,
+        "google_client_id": settings.GOOGLE_CLIENT_ID,
     })
 
 
@@ -178,7 +218,14 @@ def checkout(request):
 
 @login_required
 def order_history(request):
-    orders = request.user.orders.all()
+    available_gift = GiftItem.objects.filter(
+        is_active=True,
+        stock_quantity__gt=0,
+        minimum_order_value__lte=OuterRef("grand_total"),
+    )
+    orders = request.user.orders.annotate(
+        gift_available=Exists(available_gift)
+    ).filter(customer=request.user)
     return render(request, "orders/history.html", {"orders": orders})
 
 
@@ -186,7 +233,82 @@ def order_history(request):
 def order_detail(request, order_id):
     order = get_object_or_404(Order, pk=order_id, customer=request.user)
     last_ping = order.location_pings.first()
-    return render(request, "orders/detail.html", {"order": order, "last_ping": last_ping})
+    eligible_gifts = GiftItem.objects.none()
+    if order.status == Order.Status.DELIVERED and not order.gift_item_id:
+        eligible_gifts = GiftItem.objects.filter(
+            is_active=True,
+            stock_quantity__gt=0,
+            minimum_order_value__lte=order.grand_total,
+        )
+    return render(request, "orders/detail.html", {
+        "order": order,
+        "last_ping": last_ping,
+        "eligible_gifts": eligible_gifts,
+        "eligible_gift_count": eligible_gifts.count(),
+    })
+
+
+@login_required
+@require_POST
+def cancel_order(request, order_id):
+    with transaction.atomic():
+        order = get_object_or_404(
+            Order.objects.select_for_update(),
+            pk=order_id,
+            customer=request.user,
+        )
+        if order.status not in (Order.Status.PLACED, Order.Status.CONFIRMED):
+            messages.error(request, "This order can no longer be cancelled.")
+            return redirect("order_detail", order_id=order.id)
+
+        if order.wallet_amount_used > 0:
+            wallet = request.user.wallet
+            wallet.credit(
+                order.wallet_amount_used,
+                reason=WalletTransaction.Reason.ADJUSTMENT,
+                related_order=order,
+            )
+
+        order.status = Order.Status.CANCELLED
+        order.save(update_fields=["status"])
+
+    messages.success(request, f"Order #{order.id} cancelled.")
+    return redirect("order_detail", order_id=order.id)
+
+
+@login_required
+@require_POST
+def spin_gift(request, order_id):
+    with transaction.atomic():
+        order = get_object_or_404(
+            Order.objects.select_for_update(),
+            pk=order_id,
+            customer=request.user,
+        )
+        if order.status != Order.Status.DELIVERED:
+            messages.error(request, "Your gift spin unlocks after delivery.")
+            return redirect("order_detail", order_id=order.id)
+        if order.gift_item_id:
+            messages.info(request, "You have already spun for this order's gift.")
+            return redirect("order_detail", order_id=order.id)
+
+        gift = GiftItem.objects.select_for_update().filter(
+            is_active=True,
+            stock_quantity__gt=0,
+            minimum_order_value__lte=order.grand_total,
+        ).order_by("?").first()
+        if gift is None:
+            messages.error(request, "No gifts are available for this order right now.")
+            return redirect("order_detail", order_id=order.id)
+
+        gift.stock_quantity -= 1
+        gift.save(update_fields=["stock_quantity"])
+        order.gift_item = gift
+        order.gift_spun_at = timezone.now()
+        order.save(update_fields=["gift_item", "gift_spun_at"])
+
+    messages.success(request, f"🎁 Gift received: you won a {gift.name}.", extra_tags="gift")
+    return redirect("order_detail", order_id=order.id)
 
 
 def order_tracking_data(request, order_id):

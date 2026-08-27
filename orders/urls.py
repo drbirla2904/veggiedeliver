@@ -12,6 +12,8 @@ urlpatterns = [
     path("checkout/", views.checkout, name="checkout"),
     path("orders/", views.order_history, name="order_history"),
     path("orders/<int:order_id>/", views.order_detail, name="order_detail"),
+    path("orders/<int:order_id>/cancel/", views.cancel_order, name="cancel_order"),
+    path("orders/<int:order_id>/spin-gift/", views.spin_gift, name="spin_gift"),
     path("orders/<int:order_id>/tracking-data/", views.order_tracking_data, name="order_tracking_data"),
 
     # area admin

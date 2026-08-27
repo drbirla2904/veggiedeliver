@@ -13,6 +13,10 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -21,12 +25,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-7xxh*5w)mqa3u60w2u0k$zswm*af&*s!0b_#_f^3sawpibpa#z'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-local-development-key')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ('1', 'true', 'yes', 'on')
 
-ALLOWED_HOSTS = ['*']  # tighten to your domain(s) in production
+ALLOWED_HOSTS = [host.strip() for host in os.environ.get('DJANGO_ALLOWED_HOSTS', '*').split(',') if host.strip()]
 
 
 # Application definition
@@ -92,7 +96,7 @@ WSGI_APPLICATION = 'core.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': os.environ.get('SQLITE_NAME', str(BASE_DIR / 'db.sqlite3')),
     }
 }
 
@@ -150,6 +154,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 
 # Email
@@ -187,6 +192,15 @@ WHATSAPP_BACKEND = os.environ.get('WHATSAPP_BACKEND', 'console')
 WHATSAPP_FLOW_ID = os.environ.get('WHATSAPP_FLOW_ID', '')
 WHATSAPP_NOTIFICATIONS_ENABLED = os.environ.get('WHATSAPP_NOTIFICATIONS_ENABLED', 'True') == 'True'
 
+# --- Google and map configuration ------------------------------------------
+# The current UI uses Leaflet/OpenStreetMap, so these are optional. They are
+# available to templates and future Google OAuth/Maps integrations.
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
+GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY', '')
+MAP_DEFAULT_LATITUDE = float(os.environ.get('MAP_DEFAULT_LATITUDE', '23.2599'))
+MAP_DEFAULT_LONGITUDE = float(os.environ.get('MAP_DEFAULT_LONGITUDE', '77.4126'))
+MAP_DEFAULT_ZOOM = int(os.environ.get('MAP_DEFAULT_ZOOM', '12'))
+
 OTP_RESEND_COOLDOWN_SECONDS = 30
 OTP_MAX_VERIFY_ATTEMPTS = 5
 
@@ -220,7 +234,7 @@ USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Add any extra trusted origins via env var, comma-separated, e.g. your
-# production domain: CSRF_TRUSTED_ORIGINS_EXTRA=https://taazgi.com
+# production domain: CSRF_TRUSTED_ORIGINS_EXTRA=https://paytmcart.com
 _extra_origins = os.environ.get('CSRF_TRUSTED_ORIGINS_EXTRA', '')
 if _extra_origins:
     CSRF_TRUSTED_ORIGINS += [o.strip() for o in _extra_origins.split(',') if o.strip()]

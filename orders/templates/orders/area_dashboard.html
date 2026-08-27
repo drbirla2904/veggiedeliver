@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 {% block title %}Area Dashboard — {{ area.name }}{% endblock %}
-{% block appbar_actions %}<a href="{% url 'logout' %}">Logout</a>{% endblock %}
+{% block appbar_actions %}<a class="header-link profile-link" href="{% url 'logout' %}">Logout</a>{% endblock %}
 {% block content %}
 <h2 class="section-title">{{ area.name }} — active orders</h2>
-<a href="{% url 'area_live_map' %}" class="btn secondary full" style="margin-bottom:16px;">🗺️ View live rider map</a>
+<a href="{% url 'area_live_map' %}" class="btn secondary full" style="margin:14px 0 18px;">🗺️ View live rider map</a>
 
-<div class="card" style="margin-bottom:16px;">
-  <h3>Nearest-order suggestions</h3>
+<div class="card">
+  <h3 style="margin:0 0 12px; font-family:var(--font-display); font-weight:600; font-size:16px;">Nearest-order suggestions</h3>
   {% if rider_suggestions %}
-    <div style="display:grid; gap:10px;">
+    <div class="rider-suggestion-list">
       {% for suggestion in rider_suggestions %}
-      <div class="row" style="justify-content:space-between; gap:12px;">
+      <div class="row rider-suggestion-row">
         <span><b>{{ suggestion.name }}</b></span>
         <span class="muted">
           {% if suggestion.nearest_order_id %}
@@ -34,8 +34,8 @@
     <b>Order #{{ order.id }}</b>
     <span class="pill {{ order.status }}">{{ order.get_status_display }}</span>
   </div>
-  <div class="muted" style="margin:6px 0;">{{ order.customer.get_full_name|default:order.customer.mobile }} · ₹{{ order.grand_total }}</div>
-  <div class="muted" style="margin-bottom:10px;">{{ order.address.line1 }}</div>
+  <div class="muted" style="margin:8px 0 2px;">{{ order.customer.get_full_name|default:order.customer.mobile }} · ₹{{ order.grand_total }}</div>
+  <div class="muted" style="margin-bottom:14px;">{{ order.address.line1 }}</div>
 
   {% if not order.delivery_member %}
   <div style="display:flex; flex-direction:column; gap:8px;">
@@ -45,7 +45,7 @@
     </form>
     <form method="post" action="{% url 'assign_delivery_member' order.id %}" style="display:flex; gap:8px;">
       {% csrf_token %}
-      <select name="delivery_member_id" required>
+      <select name="delivery_member_id" required style="flex:1;">
         <option value="">…or pick manually</option>
         {% for member in delivery_members %}
         <option value="{{ member.id }}">{{ member.get_full_name|default:member.mobile }}{% if member.is_on_duty %} · on duty{% endif %}</option>
@@ -55,7 +55,7 @@
     </form>
   </div>
   {% else %}
-  <div class="muted">Assigned to <b>{{ order.delivery_member.get_full_name|default:order.delivery_member.mobile }}</b></div>
+  <div class="muted">Assigned to <b style="color:var(--ink); font-weight:700;">{{ order.delivery_member.get_full_name|default:order.delivery_member.mobile }}</b></div>
   {% endif %}
 </div>
 {% endfor %}

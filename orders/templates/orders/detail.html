@@ -1,28 +1,60 @@
 {% extends "base.html" %}
-{% block title %}Order #{{ order.id }} — Taazgi{% endblock %}
+{% block title %}Order #{{ order.id }} — Paytmcart{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<style>#track-map{ height:100%; width:100%; }</style>
 {% endblock %}
 
 {% block content %}
-<div class="row" style="margin-bottom:12px;">
+<div class="row" style="margin-bottom:16px;">
   <h2 class="section-title" style="margin:0;">Order #{{ order.id }}</h2>
   <span class="pill {{ order.status }}">{{ order.get_status_display }}</span>
 </div>
 
 {% if order.status == "out_for_delivery" or order.status == "confirmed" %}
-<div class="map-box"><div id="track-map"></div></div>
-<p class="muted" id="track-hint" style="margin-top:-6px;">Waiting for your delivery partner's location…</p>
+<div class="map-box"><div id="track-map" style="height:100%; width:100%;"></div></div>
+<p class="muted" id="track-hint" style="margin-top:-6px; margin-bottom:16px;">Waiting for your delivery partner's location…</p>
 {% endif %}
 
 <div class="card">
-  <div class="muted" style="margin-bottom:8px;">Delivering to</div>
+  <div class="muted small" style="margin-bottom:8px;">Delivering to</div>
   <b>{{ order.address.line1 }}</b><br>
   <span class="muted">{{ order.address.landmark }}</span>
 </div>
+
+{% if order.status == "delivered" and order.gift_item %}
+<section class="gift-card gift-won" aria-label="Your gift">
+  <div class="gift-won-content">
+    <div class="gift-result-frame">
+      {% if order.gift_item.image %}<img class="gift-result-image" src="{{ order.gift_item.image.url }}" alt="{{ order.gift_item.name }}">{% else %}<span class="gift-result-fallback" aria-hidden="true">🎁</span>{% endif %}
+    </div>
+    <div class="gift-won-copy"><div class="gift-kicker">Gift received</div><h3>{{ order.gift_item.name }}</h3></div>
+  </div>
+</section>
+{% elif order.status == "delivered" and eligible_gift_count %}
+<section class="gift-card" aria-labelledby="gift-title">
+  <div class="gift-heading">
+    <div>
+      <div class="gift-kicker">A little thank-you</div>
+      <h3 id="gift-title">Your order earned a gift</h3>
+      <p>Spin the wheel to reveal your surprise.</p>
+    </div>
+    <div class="gift-sparkle" aria-hidden="true">✦</div>
+  </div>
+  <form class="gift-spin-form" method="post" action="{% url 'spin_gift' order.id %}">
+    {% csrf_token %}
+    <div class="gift-wheel-wrap">
+      <span class="gift-pointer" aria-hidden="true"></span>
+      <div class="gift-wheel" aria-hidden="true">
+        <span class="wheel-center">GIFT</span>
+      </div>
+    </div>
+    <button class="btn gift-spin" type="submit">Spin the gift wheel <span aria-hidden="true">↗</span></button>
+    <span class="gift-spin-status" role="status" aria-live="polite"></span>
+  </form>
+</section>
+{% endif %}
 
 <div class="card">
   {% for item in order.items.all %}
@@ -31,18 +63,27 @@
     <span>₹{{ item.line_total }}</span>
   </div>
   {% endfor %}
-  <div class="row" style="border-top:1px solid var(--border); padding-top:8px; font-weight:700;">
+  <div class="row" style="border-top:1px dashed var(--line); padding-top:10px; margin-top:2px; font-weight:700;">
     <span>Total</span><span>₹{{ order.grand_total }}</span>
   </div>
   {% if order.wallet_amount_used > 0 %}
-  <div class="row muted"><span>Wallet used</span><span>−₹{{ order.wallet_amount_used }}</span></div>
+  <div class="row"><span class="muted">Wallet used</span><span class="muted">−₹{{ order.wallet_amount_used }}</span></div>
   {% endif %}
-  <div class="row muted"><span>Delivery</span><span>{% if order.delivery_fee %}₹{{ order.delivery_fee }}{% else %}Free{% endif %}</span></div>
-  <div class="row muted"><span>Delivery speed</span><span>{{ order.get_delivery_speed_display }}</span></div>
+  <div class="row"><span class="muted">Delivery</span><span class="muted">{% if order.delivery_fee %}₹{{ order.delivery_fee }}{% else %}Free{% endif %}</span></div>
+  <div class="row"><span class="muted">Delivery speed</span><span class="muted">{{ order.get_delivery_speed_display }}</span></div>
   {% if order.delivery_bonus > 0 %}
-  <div class="row muted"><span>Delivery bonus</span><span>₹{{ order.delivery_bonus }}</span></div>
+  <div class="row"><span class="muted">Delivery bonus</span><span class="muted">₹{{ order.delivery_bonus }}</span></div>
   {% endif %}
 </div>
+
+{% if order.status == "placed" or order.status == "confirmed" %}
+<div class="card">
+  <form method="post" action="{% url 'cancel_order' order.id %}">
+    {% csrf_token %}
+    <button class="btn clay full" type="submit">Cancel order</button>
+  </form>
+</div>
+{% endif %}
 
 {% if order.status == "out_for_delivery" or order.status == "confirmed" %}
 <script>
@@ -65,6 +106,22 @@
   }
   poll();
   setInterval(poll, 8000);
+</script>
+{% endif %}
+
+{% if order.status == "delivered" and eligible_gift_count %}
+<script>
+  const giftForm = document.querySelector('.gift-spin-form');
+  if (giftForm) {
+    giftForm.addEventListener('submit', function(event) {
+      if (giftForm.classList.contains('is-spinning')) return;
+      event.preventDefault();
+      giftForm.classList.add('is-spinning');
+      giftForm.querySelector('.gift-spin').disabled = true;
+      giftForm.querySelector('.gift-spin-status').textContent = 'Revealing your gift...';
+      window.setTimeout(() => giftForm.submit(), 2200);
+    });
+  }
 </script>
 {% endif %}
 {% endblock %}
