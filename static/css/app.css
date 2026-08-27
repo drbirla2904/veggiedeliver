@@ -179,6 +179,9 @@ button, input{ font-family: inherit; }
 .header-link:hover{ background: var(--forest-dark); }
 .header-link.profile-link{ background: var(--surface-dim); color: var(--ink) !important; border: 1px solid var(--line); }
 .header-link.profile-link:hover{ background: var(--forest-tint); }
+@media (max-width: 859px){
+  .actions .header-link.profile-link{ display: none; }
+}
 .cart-badge{
   position: absolute; top: -6px; right: -6px;
   background: var(--tomato); color: #fff;
@@ -976,6 +979,12 @@ table tr:last-child td{ border-bottom: none; }
 .profile-details .row:last-child{ border-bottom: none; }
 .profile-card .btn{ margin-top: 12px; }
 .profile-card .btn:first-of-type{ margin-top: 4px; }
+.saved-addresses{ margin-top: 26px; }
+.saved-addresses h3{ font-family: var(--font-display); font-size: 18px; margin: 0 0 10px; }
+.saved-address{ align-items: flex-start; padding: 12px 0; border-top: 1px dashed var(--line); }
+.saved-address .muted{ font-size: 12.5px; margin-top: 2px; }
+.saved-address form{ flex-shrink: 0; }
+.saved-address .address-delete{ margin: 0; padding: 7px 10px; font-size: 12px; color: var(--tomato); border-color: #E7BBAE; }
 
 .account-information{
   margin-top: 26px; padding-top: 20px;

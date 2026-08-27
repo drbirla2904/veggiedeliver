@@ -18,6 +18,25 @@
   </button>
   <p class="muted" id="share-status" role="status" aria-live="polite"></p>
   <a class="btn clay full" href="{% url 'logout' %}">Logout</a>
+  <section class="saved-addresses" aria-labelledby="saved-addresses-title">
+    <h3 id="saved-addresses-title">Saved delivery locations</h3>
+    {% if addresses %}
+      {% for address in addresses %}
+      <div class="saved-address row">
+        <div>
+          <b>{{ address.label }}</b>
+          <div class="muted">{{ address.line1 }}{% if address.landmark %}, {{ address.landmark }}{% endif %}</div>
+        </div>
+        <form method="post" action="{% url 'delete_address' address.id %}" onsubmit="return confirm('Delete this saved location?');">
+          {% csrf_token %}
+          <button class="btn address-delete" type="submit" aria-label="Delete {{ address.label }} location">Delete</button>
+        </form>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p class="muted">Your saved delivery locations will appear here.</p>
+    {% endif %}
+  </section>
   <section class="account-information" aria-labelledby="account-information-title">
     <h3 id="account-information-title">PaytmCart information</h3>
     <p>Learn more about shopping and delivery with us.</p>

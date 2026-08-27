@@ -9,6 +9,9 @@
   .location-status{ padding:10px 12px; border-radius:var(--radius-sm); margin:-2px 0 14px; font-size:12px; font-weight:700; }
   .location-status.good{ background:#DCEBD3; color:#2F5B27; }
   .location-status.caution{ background:#FFF1D6; color:#8A5A00; }
+  .location-search-wrap{ margin-bottom:14px; }
+  .location-search-wrap label{ margin-top:0; }
+  .location-search-wrap input{ margin-bottom:0; }
 </style>
 {% endblock %}
 
@@ -32,6 +35,11 @@
 <button type="button" class="btn secondary full" id="use-location-btn" style="margin-bottom:14px;" onclick="useMyLocation()">
   📍 Find my location
 </button>
+
+<div class="location-search-wrap">
+  <label for="location-search">Search your address</label>
+  <input type="search" id="location-search" placeholder="Search house, street, landmark or area" autocomplete="street-address">
+</div>
 
 <div class="map-box"><div id="pin-map"></div></div>
 <p class="muted" id="pin-hint" style="margin-top:-6px; margin-bottom:14px;">
@@ -119,6 +127,34 @@
   let accuracyCircle = null;
   let geocodeRequest = 0;
 
+  function fillAddressFromPlace(place) {
+    if (!place.geometry || !place.geometry.location) return;
+    const latitude = place.geometry.location.lat();
+    const longitude = place.geometry.location.lng();
+    const components = {};
+    (place.address_components || []).forEach(component => {
+      component.types.forEach(type => { components[type] = component.long_name; });
+    });
+    dropPin(latitude, longitude);
+    map.setView([latitude, longitude], 17);
+    document.getElementById('line1_field').value = place.formatted_address || '';
+    document.getElementById('landmark_field').value = [
+      components.neighborhood, components.sublocality, components.locality
+    ].filter(Boolean).filter((value, index, values) => values.indexOf(value) === index).join(', ');
+    document.getElementById('pincode_field').value = components.postal_code || '';
+    document.getElementById('pin-hint').textContent = 'Address selected — check the details and add your house or building information if needed.';
+  }
+
+  function initAddressAutocomplete() {
+    const search = document.getElementById('location-search');
+    if (!search || !window.google || !google.maps.places) return;
+    const autocomplete = new google.maps.places.Autocomplete(search, {
+      fields: ['address_components', 'formatted_address', 'geometry'],
+      componentRestrictions: {country: 'in'}
+    });
+    autocomplete.addListener('place_changed', () => fillAddressFromPlace(autocomplete.getPlace()));
+  }
+
   function updateLocationStatus(accuracy) {
     const status = document.getElementById('location-status');
     if (!accuracy) {
@@ -177,23 +213,30 @@
     document.getElementById('line1_field').value = '';
     document.getElementById('landmark_field').value = '';
     document.getElementById('pincode_field').value = '';
-    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`)
-      .then(r => r.json())
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
+      headers: {Accept: 'application/json'}
+    })
+      .then(r => {
+        if (!r.ok) throw new Error(`Reverse geocoding failed: ${r.status}`);
+        return r.json();
+      })
       .then(data => {
         if (requestId !== geocodeRequest) return;
         if (data && data.address) {
           const a = data.address;
-          const street = [a.house_number, a.road].filter(Boolean).join(' ');
-          const locality = [a.neighbourhood, a.quarter, a.suburb, a.city_district]
+          const street = [a.house_number, a.road || a.pedestrian || a.footway]
+            .filter(Boolean).join(' ');
+          const locality = [a.neighbourhood, a.quarter, a.suburb, a.city_district,
+            a.town, a.village, a.municipality]
             .filter(Boolean)
             .filter((value, index, values) => values.indexOf(value) === index)
             .join(', ');
-          document.getElementById('line1_field').value = street;
+          document.getElementById('line1_field').value = street || data.display_name || '';
           document.getElementById('landmark_field').value = locality;
           document.getElementById('pincode_field').value = a.postcode || '';
           marker.bindPopup(`<strong>Your delivery location</strong><br>${data.display_name || 'Pin selected'}`);
           marker.openPopup();
-          document.getElementById('pin-hint').textContent = street
+          document.getElementById('pin-hint').textContent = street || data.display_name
             ? 'Street found — check the address below and add your house or building details.'
             : 'The pin is set, but no street address was found. Please enter the address manually.';
         } else {
@@ -280,6 +323,13 @@
     if (navigator.geolocation) {
       useMyLocation();
     }
+    {% if google_maps_api_key %}
+    const googleScript = document.createElement('script');
+    googleScript.src = 'https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key|escapejs }}&libraries=places&callback=initAddressAutocomplete';
+    googleScript.async = true;
+    googleScript.defer = true;
+    document.head.appendChild(googleScript);
+    {% endif %}
   });
 </script>
 {% endblock %}

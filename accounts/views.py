@@ -4,8 +4,13 @@ from rest_framework.authtoken.models import Token
 from rest_framework import status
 from django.utils.decorators import method_decorator
 from django_ratelimit.decorators import ratelimit
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.db.models import ProtectedError
+from django.shortcuts import get_object_or_404, redirect, render
 
 from .models import User
+from locations.models import Address
 from .serializers import RequestOTPSerializer, VerifyOTPSerializer, UserSerializer
 from .services import generate_and_send_otp, verify_otp, OTPCooldownError, OTPAttemptsExceededError
 
@@ -192,4 +197,21 @@ def logout_view(request):
 
 @login_required
 def profile_page(request):
-    return render(request, "accounts/profile.html")
+    return render(request, "accounts/profile.html", {
+        "addresses": request.user.addresses.all(),
+    })
+
+
+@login_required
+def delete_address(request, address_id):
+    if request.method != "POST":
+        return redirect("profile")
+
+    address = get_object_or_404(Address, pk=address_id, customer=request.user)
+    try:
+        address.delete()
+    except ProtectedError:
+        messages.error(request, "This address is linked to an order and cannot be deleted.")
+    else:
+        messages.success(request, "Saved address deleted.")
+    return redirect("profile")
